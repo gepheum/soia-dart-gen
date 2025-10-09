@@ -1,0 +1,62 @@
+enum Weekday {
+  MONDAY;
+  TUESDAY;
+  WEDNESDAY;
+  THURSDAY;
+  FRIDAY;
+  SATURDAY;
+  SUNDAY;
+}
+
+enum JsonValue {
+  NULL = 1;
+  boolean: bool = 100;
+  number: float64 = 6;
+  string: string = 3;
+  array: [JsonValue] = 4;
+  struct Pair {
+    name: string = 0;
+    value: JsonValue = 1;
+  }
+  object: [Pair|name] = 5;
+}
+
+enum EmptyEnum {}
+
+enum EnumWithNameConflict {
+  SERIALIZER;
+  if: bool;
+}
+
+enum EnumWithStructField {
+  struct S {
+    x: float32 = 0;
+    y: float32 = 1;
+  }
+  s: S = 1;
+}
+
+enum Kind {
+  FOO;
+  BAR;
+  enum Kind {
+    kind: bool;
+  }
+  kind: Kind;
+  struct WrapOption {}
+  wrap_option: WrapOption;
+  create_option: WrapOption;
+}
+
+enum Status {
+  OK;
+
+  removed;
+  removed;
+
+  struct Error {
+    code: int32;
+    message: string;
+  }
+  error: Error;
+}
