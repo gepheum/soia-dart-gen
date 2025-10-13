@@ -1,5 +1,5 @@
-import type { RecordKey, RecordLocation, ResolvedType } from "soiac";
-import { ClassName, Namer } from "./naming.js";
+import type { Module, RecordKey, RecordLocation, ResolvedType } from "soiac";
+import { getClassName, toLowerCamelName } from "./naming.js";
 
 export type TypeFlavor =
   | "initializer"
@@ -9,12 +9,11 @@ export type TypeFlavor =
   | "kind";
 
 /**
- * Transforms a type found in a `.soia` file into a Kotlin type.
+ * Transforms a type found in a `.soia` file into a Dart type.
  *
  * The flavors are:
  *   · initializer
- *       The value can be passed by parameter to the `create` method of a frozen
- *       class or the constructor of a mutable class.
+ *       The value can be passed by parameter to the constructor of a frozen class.
  *   · frozen:
  *       The type is deeply immutable. All the fields of a frozen class are also
  *       frozen.
@@ -28,23 +27,23 @@ export type TypeFlavor =
 export class TypeSpeller {
   constructor(
     readonly recordMap: ReadonlyMap<RecordKey, RecordLocation>,
-    private readonly namer: Namer,
+    private readonly origin: Module,
   ) {}
 
-  getKotlinType(
+  getDartType(
     type: ResolvedType,
     flavor: "initializer" | "frozen" | "mutable",
     allRecordsFrozen?: undefined,
   ): string;
 
-  getKotlinType(
+  getDartType(
     type: ResolvedType,
     flavor: TypeFlavor,
     // Only matters if mode is "maybe-mutable"
     allRecordsFrozen: boolean | undefined,
   ): string;
 
-  getKotlinType(
+  getDartType(
     type: ResolvedType,
     flavor: TypeFlavor,
     // Only matters if mode is "maybe-mutable"
@@ -54,14 +53,14 @@ export class TypeSpeller {
       case "record": {
         const recordLocation = this.recordMap.get(type.key)!;
         const record = recordLocation.record;
-        const className = this.namer.getClassName(recordLocation).qualifiedName;
+        const className = this.getClassName(recordLocation);
         if (record.recordType === "struct") {
           if (flavor === "frozen" || allRecordsFrozen) {
             return className;
           } else if (flavor === "maybe-mutable" || flavor === "initializer") {
-            return allRecordsFrozen ? className : `${className}_OrMutable`;
+            return allRecordsFrozen ? className : `${className}_orMutable`;
           } else if (flavor === "mutable") {
-            return `${className}.Mutable`;
+            return `${className}_mutable`;
           } else {
             const _: "kind" = flavor;
             throw TypeError();
@@ -77,7 +76,7 @@ export class TypeSpeller {
         ) {
           return className;
         } else if (flavor === "kind") {
-          return `${className}.Kind`;
+          return `${className}_kind`;
         } else {
           const _: never = flavor;
           throw TypeError();
@@ -85,49 +84,49 @@ export class TypeSpeller {
       }
       case "array": {
         if (flavor === "initializer") {
-          const itemType = this.getKotlinType(
+          const itemType = this.getDartType(
             type.item,
             "maybe-mutable",
             allRecordsFrozen,
           );
-          return `kotlin.collections.Iterable<${itemType}>`;
+          return `_core.Iterable<${itemType}>`;
         } else if (flavor === "frozen") {
-          const itemType = this.getKotlinType(
+          const itemType = this.getDartType(
             type.item,
             "frozen",
             allRecordsFrozen,
           );
           if (type.key) {
             const { keyType } = type.key;
-            let kotlinKeyType = this.getKotlinType(keyType, "frozen");
+            let dartKeyType = this.getDartType(keyType, "frozen");
             if (keyType.kind === "record") {
-              kotlinKeyType += ".Kind";
+              dartKeyType += "_kind";
             }
-            return `land.soia.KeyedList<${itemType}, ${kotlinKeyType}>`;
+            return `_soia.KeyedIterable<${itemType}, ${dartKeyType}>`;
           } else {
-            return `kotlin.collections.List<${itemType}>`;
+            return `_core.Iterable<${itemType}>`;
           }
         } else if (flavor === "maybe-mutable") {
-          const itemType = this.getKotlinType(
+          const itemType = this.getDartType(
             type.item,
             "maybe-mutable",
             allRecordsFrozen,
           );
-          return `kotlin.collections.List<${itemType}>`;
+          return `_core.Iterable<${itemType}>`;
         } else if (flavor === "mutable") {
-          const itemType = this.getKotlinType(
+          const itemType = this.getDartType(
             type.item,
             "maybe-mutable",
             allRecordsFrozen,
           );
-          return `kotlin.collections.MutableList<${itemType}>`;
+          return `_core.List<${itemType}>`;
         } else {
           const _: "kind" = flavor;
           throw TypeError();
         }
       }
       case "optional": {
-        const otherType = this.getKotlinType(
+        const otherType = this.getDartType(
           type.other,
           flavor,
           allRecordsFrozen,
@@ -138,31 +137,31 @@ export class TypeSpeller {
         const { primitive } = type;
         switch (primitive) {
           case "bool":
-            return "kotlin.Boolean";
+            return "_core.bool";
           case "int32":
-            return "kotlin.Int";
           case "int64":
-            return "kotlin.Long";
           case "uint64":
-            return "kotlin.ULong";
+            return "_core.int";
           case "float32":
-            return "kotlin.Float";
           case "float64":
-            return "kotlin.Double";
+            return "_core.double";
           case "timestamp":
-            return "java.time.Instant";
+            return "_core.DateTime";
           case "string":
-            return "kotlin.String";
+            return "_core.String";
           case "bytes":
-            return "okio.ByteString";
+            return "_soia.ByteString";
         }
       }
     }
   }
 
-  getClassName(recordKey: RecordKey): ClassName {
-    const record = this.recordMap.get(recordKey)!;
-    return this.namer.getClassName(record);
+  getClassName(recordOrKey: RecordKey | RecordLocation): string {
+    const record =
+      typeof recordOrKey === "string"
+        ? this.recordMap.get(recordOrKey)!
+        : recordOrKey;
+    return getClassName(record, { origin: this.origin });
   }
 
   getSerializerExpression(type: ResolvedType): string {
@@ -170,23 +169,23 @@ export class TypeSpeller {
       case "primitive": {
         switch (type.primitive) {
           case "bool":
-            return "land.soia.Serializers.bool";
+            return "_soia.Serializers.bool";
           case "int32":
-            return "land.soia.Serializers.int32";
+            return "_soia.Serializers.int32";
           case "int64":
-            return "land.soia.Serializers.int64";
+            return "_soia.Serializers.int64";
           case "uint64":
-            return "land.soia.Serializers.uint64";
+            return "_soia.Serializers.uint64";
           case "float32":
-            return "land.soia.Serializers.float32";
+            return "_soia.Serializers.float32";
           case "float64":
-            return "land.soia.Serializers.float64";
+            return "_soia.Serializers.float64";
           case "timestamp":
-            return "land.soia.Serializers.timestamp";
+            return "_soia.Serializers.timestamp";
           case "string":
-            return "land.soia.Serializers.string";
+            return "_soia.Serializers.string";
           case "bytes":
-            return "land.soia.Serializers.bytes";
+            return "_soia.Serializers.bytes";
         }
         const _: never = type.primitive;
         throw TypeError();
@@ -195,16 +194,16 @@ export class TypeSpeller {
         if (type.key) {
           const keyChain = type.key.path.join(".");
           const path = type.key.path
-            .map((f) => this.namer.toLowerCamelName(f.name.text))
+            .map((f) => toLowerCamelName(f.name.text))
             .join(".");
           return (
-            "land.soia.internal.keyedListSerializer(\n" +
+            "_soia.Serializers.keyedIterable(\n" +
             this.getSerializerExpression(type.item) +
             `,\n"${keyChain}",\n{ it.${path} },\n)`
           );
         } else {
           return (
-            "land.soia.Serializers.list(\n" +
+            "_soia.Serializers.iterable(\n" +
             this.getSerializerExpression(type.item) +
             ",\n)"
           );
@@ -212,13 +211,13 @@ export class TypeSpeller {
       }
       case "optional": {
         return (
-          `land.soia.Serializers.optional(\n` +
+          `_soia.Serializers.optional(\n` +
           this.getSerializerExpression(type.other) +
           `,\n)`
         );
       }
       case "record": {
-        return this.getClassName(type.key).qualifiedName + ".SERIALIZER";
+        return this.getClassName(type.key) + ".serializer";
       }
     }
   }

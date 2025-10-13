@@ -1,113 +1,110 @@
-import { Field, RecordLocation, convertCase } from "soiac";
+import { Field, Module, RecordLocation, convertCase } from "soiac";
 
-export class Namer {
-  private readonly genPackageFirstName: string;
+export function toLowerCamelName(field: Field | string): string {
+  const inputName = typeof field === "string" ? field : field.name.text;
+  const convertCaseResult = convertCase(inputName, "lower_underscore", "lowerCamel");
+  return (DART_KEYWORDS.has(convertCaseResult) || GENERATED_LOWER_CAMEL_SYMBOLS.has(convertCaseResult))
+    ? convertCaseResult + "_"
+    : convertCaseResult;
+}
 
-  constructor(private readonly packagePrefix: string) {
-    if (packagePrefix.length <= 0) {
-      this.genPackageFirstName = "soiagen";
-    } else {
-      this.genPackageFirstName = packagePrefix.split(".")[0]!;
-    }
+/** Returns the name of the frozen Dart class for the given record. */
+export function getClassName(
+  record: RecordLocation,
+  origin: {
+    origin: Module;
+  },
+): string {
+  const { recordAncestors } = record;
+  const parts: string[] = [];
+  for (let i = 0; i < recordAncestors.length; ++i) {
+    const record = recordAncestors[i]!;
+    parts.push(record.name.text);
   }
 
-  toLowerCamelName(field: Field | string): string {
-    const inputName = typeof field === "string" ? field : field.name.text;
-    const nameConflict =
-      KOTLIN_HARD_KEYWORDS.has(inputName) ||
-      TOP_LEVEL_PACKAGE_NAMES.has(inputName) ||
-      inputName === this.genPackageFirstName;
-    return nameConflict
-      ? inputName + "_"
-      : convertCase(inputName, "lower_underscore", "lowerCamel");
-  }
+  const name = parts.join("_");
 
-  /** Returns the name of the frozen Kotlin class for the given record. */
-  getClassName(record: RecordLocation): ClassName {
-    const { recordAncestors } = record;
-    const parts: string[] = [];
-    for (let i = 0; i < recordAncestors.length; ++i) {
-      const record = recordAncestors[i]!;
-      let name = record.name.text;
-      const parentType = i > 0 ? recordAncestors[i - 1]!.recordType : undefined;
-      if (
-        (parentType === "struct" && STRUCT_NESTED_TYPE_NAMES.has(name)) ||
-        (parentType === "enum" &&
-          (ENUM_NESTED_TYPE_NAMES.has(name) || /[^a-z]Option$/.test(name)))
-      ) {
-        name += "_";
-      }
-      parts.push(name);
-    }
-
-    const name = parts.at(-1)!;
-
-    const path = record.modulePath;
-    const importPath = path.replace(/\.soia$/, "").replace("/", ".");
-    const qualifiedName = `${this.packagePrefix}soiagen.${importPath}.${parts.join(".")}`;
-
-    return { name, qualifiedName };
+  if (origin.origin.path === record.modulePath) {
+    return name;
+  } else {
+    const alias = getModuleAlias(record.modulePath);
+    return `${alias}.${name}`;
   }
 }
 
-const KOTLIN_HARD_KEYWORDS: ReadonlySet<string> = new Set([
+export function getModuleAlias(modulePath: string): string {
+  return "_lib_" + modulePath.replace(/\.soia$/, "").replace("/", "_");
+}
+
+const DART_KEYWORDS: ReadonlySet<string> = new Set([
   "abstract",
-  "annotation",
   "as",
+  "assert",
+  "async",
+  "await",
   "break",
+  "case",
   "catch",
   "class",
   "const",
   "continue",
-  "crossinline",
-  "data",
+  "covariant",
+  "default",
+  "deferred",
+  "do",
+  "dynamic",
   "else",
   "enum",
+  "export",
+  "extends",
+  "extension",
   "external",
+  "factory",
+  "false",
   "final",
   "finally",
   "for",
-  "fun",
+  "Function",
+  "get",
+  "hide",
   "if",
+  "implements",
   "import",
   "in",
-  "inline",
   "interface",
-  "internal",
   "is",
-  "lateinit",
-  "noinline",
-  "object",
-  "open",
+  "late",
+  "library",
+  "mixin",
+  "new",
+  "null",
+  "on",
   "operator",
-  "override",
-  "package",
-  "private",
-  "protected",
-  "public",
-  "reified",
+  "part",
+  "required",
+  "rethrow",
   "return",
-  "sealed",
+  "set",
+  "show",
+  "static",
   "super",
-  "suspend",
+  "switch",
+  "sync",
   "this",
   "throw",
+  "true",
   "try",
-  "typealias",
-  "val",
+  "typedef",
   "var",
-  "when",
+  "void",
   "while",
-]);
-
-const TOP_LEVEL_PACKAGE_NAMES: ReadonlySet<string> = new Set<string>([
-  "java",
-  "kotlin",
-  "okio",
+  "with",
+  "yield",
 ]);
 
 export function toEnumConstantName(field: Field): string {
-  return RECORD_GENERATED_CONSTANT_NAMES.has(field.name.text)
+  // TODO: fix
+  return GENERATED_LOWER_CAMEL_SYMBOLS.has(field.name.text)
     ? field.name.text + "_"
     : field.name.text;
 }
@@ -122,16 +119,13 @@ export interface ClassName {
   qualifiedName: string;
 }
 
-/** Generated types nested within a struct class. */
-const STRUCT_NESTED_TYPE_NAMES: ReadonlySet<string> = new Set(["Mutable"]);
-
-/** Generated types nested within an enum class. */
-const ENUM_NESTED_TYPE_NAMES: ReadonlySet<string> = new Set([
-  "Kind",
-  "Unknown",
-]);
-
-const RECORD_GENERATED_CONSTANT_NAMES: ReadonlySet<string> = new Set([
-  "SERIALIZER",
-  "TYPE_DESCRIPTOR",
+const GENERATED_LOWER_CAMEL_SYMBOLS: ReadonlySet<string> = new Set([
+  "hashCode",
+  "defaultInstance",
+  "mutable",
+  "noSuchMethod",
+  "runtimeType",
+  "toFrozen",
+  "toMutable",
+  "toString",
 ]);
