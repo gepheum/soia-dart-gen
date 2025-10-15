@@ -188,15 +188,19 @@ class DartSourceFileGenerator {
       const defaultExpr = this.getDefaultExpression(field.type!).expression;
       this.push(`${defaultExpr},\n`);
     }
+    this.push(`);\n\n`);
+
     this.push(
-      `);\n\n`,
-      "static final _serializerBuilder = _soia.internal__StructSerializerBuilder(\n",
-      `recordId: "${getRecordId(struct)}",\n`,
-      "defaultInstance: defaultInstance,\n",
-      "newMutable: (it) => (it != null) ? it.toMutable() : mutable(),\n",
-      `toFrozen: (${className}_mutable it) => it.toFrozen(),\n`,
-      "getUnrecognizedFields: (it) => it._u,\n",
-      "setUnrecognizedFields: (it, u) => it._u = u,\n",
+      "@_core.deprecated\n",
+      "@_core.override\n",
+      `${className} toFrozen() => this;\n\n`,
+      `${className}_mutable toMutable() => ${className}_mutable._(\n`,
+    );
+    for (const field of fields) {
+      const dartName = structFieldToDartName(field);
+      this.push(`this.${dartName},\n`);
+    }
+    this.push(
       ");\n\n",
       `static _soia.StructSerializer<${className}, ${className}_mutable> get serializer {\n`,
       "if (_serializerBuilder.mustInitialize()) {\n",
@@ -223,20 +227,14 @@ class DartSourceFileGenerator {
       "}\n",
       "return _serializerBuilder.serializer;\n",
       "}\n\n",
-    );
-
-    this.push(
-      "@_core.deprecated\n",
-      "@_core.override\n",
-      `${className} toFrozen() => this;\n\n`,
-      `${className}_mutable toMutable() => ${className}_mutable._(\n`,
-    );
-    for (const field of fields) {
-      const dartName = structFieldToDartName(field);
-      this.push(`this.${dartName},\n`);
-    }
-    this.push(
-      ");\n", //
+      "static final _serializerBuilder = _soia.internal__StructSerializerBuilder(\n",
+      `recordId: "${getRecordId(struct)}",\n`,
+      "defaultInstance: defaultInstance,\n",
+      "newMutable: (it) => (it != null) ? it.toMutable() : mutable(),\n",
+      `toFrozen: (${className}_mutable it) => it.toFrozen(),\n`,
+      "getUnrecognizedFields: (it) => it._u,\n",
+      "setUnrecognizedFields: (it, u) => it._u = u,\n",
+      ");\n",
       "}\n\n",
     ); // class frozen
 
