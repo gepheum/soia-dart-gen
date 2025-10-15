@@ -1,5 +1,5 @@
 import type { Module, RecordKey, RecordLocation, ResolvedType } from "soiac";
-import { getClassName, toLowerCamelName } from "./naming.js";
+import { getClassName, structFieldToDartName } from "./naming.js";
 
 export type TypeFlavor =
   | "initializer"
@@ -192,14 +192,16 @@ export class TypeSpeller {
       }
       case "array": {
         if (type.key) {
-          const keyChain = type.key.path.join(".");
+          const keyChain = type.key.path.map((p) => p.name.text).join(".");
           const path = type.key.path
-            .map((f) => toLowerCamelName(f.name.text))
+            .map((f) => structFieldToDartName(f.name.text))
             .join(".");
+          const itemType = this.getDartType(type.item, "frozen");
           return (
             "_soia.Serializers.keyedIterable(\n" +
-            this.getSerializerExpression(type.item) +
-            `,\n"${keyChain}",\n{ it.${path} },\n)`
+            `${this.getSerializerExpression(type.item)},\n` +
+            `(${itemType} it) => it.${path},\n` +
+            `internal__getKeySpec: "${keyChain}",\n)`
           );
         } else {
           return (

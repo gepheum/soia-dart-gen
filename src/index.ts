@@ -1,23 +1,27 @@
-// TODO: name collision toString
-// TODO: name collistion String
-// TODO: use named parameters in constructors
-// TODO: in client, add a internal__frozenCopy which expects a transform function...
-// TODO: in client, add a internal__MutableList class
+// Add the "createStruct" things in enums
+// Add equals, hashCode, toString...
+// Take a pass at this code
+// Format a bit better
+//   Add long comment lines "----" between record definitions
+// TODO: constants
+// TODO: enums
+// TODO: client:
+//   - Remove Kind type parameter in EnumSerializer, I think I can just use number...
 
 import * as paths from "path";
 import {
+  convertCase,
+  Field,
   type CodeGenerator,
   type Constant,
-  type Field,
   type Method,
   type Module,
   type RecordKey,
   type RecordLocation,
   type ResolvedType,
-  convertCase,
 } from "soiac";
 import { z } from "zod";
-import { getModuleAlias, toLowerCamelName } from "./naming.js";
+import { enumFieldToDartName, getModuleAlias, structFieldToDartName, toLowerCamel, toTopLevelConstantName, toUpperCamel } from "./naming.js";
 import { TypeSpeller } from "./type_speller.js";
 
 const Config = z.object({});
@@ -85,9 +89,9 @@ class DartSourceFileGenerator {
       this.writeMethod(method);
     }
 
-    // for (const constant of this.inModule.constants) {
-    //   this.writeConstant(constant);
-    // }
+    for (const constant of this.inModule.constants) {
+      this.writeConstant(constant);
+    }
 
     return this.joinLinesAndFixFormatting();
   }
@@ -98,7 +102,7 @@ class DartSourceFileGenerator {
     const className = typeSpeller.getClassName(struct);
     this.push(`sealed class ${className}_orMutable {\n`);
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
+      const fieldName = structFieldToDartName(field);
       const allRecordsFrozen = field.isRecursive === "hard";
       const type = typeSpeller.getDartType(
         field.type!,
@@ -117,32 +121,32 @@ class DartSourceFileGenerator {
     );
 
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
+      const fieldName = structFieldToDartName(field);
       const type = typeSpeller.getDartType(field.type!, "frozen");
       if (field.isRecursive === "hard") {
         this.push(`final ${type}? _rec_${fieldName};\n`);
         const defaultExpr = this.getDefaultExpression(field.type!).expression;
-        this.push(`${type} get ${fieldName} => _rec_${fieldName} ?? ${defaultExpr};\n`);
+        this.push(
+          `${type} get ${fieldName} => _rec_${fieldName} ?? ${defaultExpr};\n`,
+        );
       } else {
         this.push(`final ${type} ${fieldName};\n`);
       }
     }
-    this.push(
-      `_soia.UnrecognizedFields<${className}>? _unrecognizedFields;\n\n`,
-    );
+    this.push(`_soia.internal__UnrecognizedFields? _u;\n\n`);
 
     // Public constructor
     this.push(`factory ${className}(`);
     this.push(fields.length ? "{\n" : "");
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
+      const fieldName = structFieldToDartName(field);
       const type = typeSpeller.getDartType(field.type!, "initializer");
       this.push(`required ${type} ${fieldName},\n`);
     }
     this.push(fields.length ? "}" : "");
     this.push(`) => ${className}._(\n`);
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
+      const fieldName = structFieldToDartName(field);
       const toFrozenExpr = this.toFrozenExpression(fieldName, field.type!);
       this.push(`${toFrozenExpr},\n`);
     }
@@ -151,7 +155,7 @@ class DartSourceFileGenerator {
     // Private constructor
     this.push(`${className}._(\n`);
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
+      const fieldName = structFieldToDartName(field);
       if (field.isRecursive === "hard") {
         this.push(`this._rec_${fieldName},\n`);
       } else {
@@ -162,7 +166,6 @@ class DartSourceFileGenerator {
 
     this.push(`static final defaultInstance = ${className}._(\n`);
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
       if (field.isRecursive === "hard") {
         this.push("null,\n");
       } else {
@@ -172,12 +175,48 @@ class DartSourceFileGenerator {
     }
     this.push(
       ");\n\n",
-      `static ${className}_mutable mutable() => ${className}_mutable._(\n`);
+      `static ${className}_mutable mutable() => ${className}_mutable._(\n`,
+    );
     for (const field of fields) {
       const defaultExpr = this.getDefaultExpression(field.type!).expression;
       this.push(`${defaultExpr},\n`);
     }
-    this.push(`);\n\n`);
+    this.push(
+      `);\n\n`,
+      "static final _serializerBuilder = _soia.internal__StructSerializerBuilder(\n",
+      `recordId: "${getRecordId(struct)}",\n`,
+      "defaultInstance: defaultInstance,\n",
+      "newMutable: (it) => (it != null) ? it.toMutable() : mutable(),\n",
+      `toFrozen: (${className}_mutable it) => it.toFrozen(),\n`,
+      "getUnrecognizedFields: (it) => it._u,\n",
+      "setUnrecognizedFields: (it, u) => it._u = u,\n",
+      ");\n\n",
+      `static _soia.StructSerializer<${className}, ${className}_mutable> get serializer {\n`,
+      "if (_serializerBuilder.mustInitialize()) {\n",
+    );
+    for (const field of fields) {
+      const fieldName = structFieldToDartName(field);
+      const serializerExpr = typeSpeller.getSerializerExpression(field.type!);
+      this.push(
+        "_serializerBuilder.addField(\n",
+        `"${field.name.text}",\n`,
+        `"${fieldName}",\n`,
+        `${field.number},\n`,
+        `${serializerExpr},\n`,
+        `(it) => it.${fieldName},\n`,
+        `(it, v) => it.${fieldName} = v,\n`,
+        ");\n",
+      );
+    }
+    for (const removedNumber of struct.record.removedNumbers) {
+      this.push(`_serializerBuilder.addRemovedNumber(${removedNumber});\n`);
+    }
+    this.push(
+      "_serializerBuilder.finalize();\n",
+      "}\n",
+      "return _serializerBuilder.serializer;\n",
+      "}\n\n",
+    );
 
     this.push(
       "@_core.deprecated\n",
@@ -186,7 +225,7 @@ class DartSourceFileGenerator {
       `${className}_mutable toMutable() => ${className}_mutable._(\n`,
     );
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
+      const fieldName = structFieldToDartName(field);
       this.push(`this.${fieldName},\n`);
     }
     this.push(");\n");
@@ -197,7 +236,7 @@ class DartSourceFileGenerator {
       `final class ${className}_mutable implements ${className}_orMutable {\n\n`,
     );
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
+      const fieldName = structFieldToDartName(field);
       const allRecordsFrozen = field.isRecursive === "hard";
       const type = typeSpeller.getDartType(
         field.type!,
@@ -207,10 +246,11 @@ class DartSourceFileGenerator {
       this.push(`${type} ${fieldName};\n`);
     }
     this.push(
-      `_soia.UnrecognizedFields<${className}>? _unrecognizedFields;\n\n`,
-      `${className}_mutable._(\n`);
+      `_soia.internal__UnrecognizedFields? _u;\n\n`,
+      `${className}_mutable._(\n`,
+    );
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
+      const fieldName = structFieldToDartName(field);
       this.push(`this.${fieldName},\n`);
     }
     this.push(
@@ -219,11 +259,11 @@ class DartSourceFileGenerator {
       `${className} toFrozen() => ${className}(\n`,
     );
     for (const field of fields) {
-      const fieldName = toLowerCamelName(field);
+      const fieldName = structFieldToDartName(field);
       this.push(`${fieldName}: this.${fieldName},\n`);
     }
     this.push(
-      ").._unrecognizedFields = this._unrecognizedFields;\n",
+      ").._u = this._u;\n",
       "}\n\n", // class _mutable
     );
   }
@@ -231,211 +271,135 @@ class DartSourceFileGenerator {
   private writeClassesForEnum(record: RecordLocation): void {
     const { typeSpeller } = this;
     const { fields } = record.record;
+    const constantFields = fields.filter((f) => !f.type);
+    const valueFields = fields.filter((f) => f.type);
     const className = typeSpeller.getClassName(record);
-    this.push(`sealed class ${className} {\n`);
-    this.push(`static const ${className} unknown = ${className}_unknown._();\n`);
-    this.push(`${className}_kind get kind;\n`);
-    this.push("}\n\n");  // class enum
+    // The actual enum class
+    this.push(
+      `sealed class ${className} {\n`,
+      `static const ${className} unknown = ${className}_unknown._instance;\n\n`,
+    );
+    for (const field of constantFields) {
+      this.push(
+        `static const ${enumFieldToDartName(field)} = `,
+        `_${className}_consts.${toLowerCamel(field)}Const;\n`,
+      );
+    }
+    this.pushEol();
+    for (const field of valueFields) {
+      const dartType = typeSpeller.getDartType(field.type!, "frozen");
+      this.push(
+        `factory ${className}.wrap${toUpperCamel(field)}(\n`,
+        `${dartType} value\n`,
+        `) => ${className}_${toLowerCamel(field)}Wrapper._(value);\n\n`,
+      );
+    }
+    this.push(`\n${className}_kind get kind;\n`);
+    this.push(
+      "_core.bool get isUnknown;\n\n",
+      `static _soia.EnumSerializer<${className}> get serializer {\n`,
+      "if (_serializerBuilder.mustInitialize()) {\n",
+    );
+    for (const constantField of constantFields) {
+      this.push(
+        "_serializerBuilder.addConstantField(\n",
+        `"${constantField.name.text}",\n`,
+        `${enumFieldToDartName(constantField)},\n`,
+        ");\n");
+    }
+    for (const valueField of valueFields) {
+      const type = valueField.type!;
+      const serializerExpr = typeSpeller.getSerializerExpression(type);
+      this.push(
+        "_serializerBuilder.addValueField(\n",
+        `"${valueField.name.text}",\n`,
+        `${className}_kind.${toLowerCamel(valueField)}Wrapper,\n`,
+        `${serializerExpr},\n`,
+        `${className}_${toLowerCamel(valueField)}Wrapper._,\n`,
+        "(it) => it.value,\n",
+        ");\n");
+    }
+    for (const removedNumber of record.record.removedNumbers) {
+      this.push(`_serializerBuilder.addRemovedNumber(${removedNumber});\n`);
+    }
+    this.push(
+      "_serializerBuilder.finalize();\n",
+      "}\n",
+      "return _serializerBuilder.serializer;\n",
+      "}\n\n",
+      "static final _serializerBuilder = _soia.internal__EnumSerializerBuilder.create(\n",
+      `recordId: "${getRecordId(record)}",\n`,
+      `unknownInstance: ${className}_unknown._instance,\n`,
+      `enumInstance: ${className}.unknown,\n`,
+      `getKind: (it) => it.kind,\n`,
+      `getNumber: (it) => it.number,\n`,
+      `wrapUnrecognized: ${className}_unknown._unrecognized,\n`,
+      `getUnrecognized: (it) => it._u,\n`,
+      ");\n",
+      "}\n\n",
+    );
+    // The _kind enum
+    this.push(
+      `enum ${className}_kind {\n`, //
+      "unknown(0),\n",
+    );
+    for (const field of constantFields) {
+      this.push(`${toLowerCamel(field)}Const(${field.number}),\n`);
+    }
+    for (const field of valueFields) {
+      this.push(`${toLowerCamel(field)}Wrapper(${field.number}),\n`);
+    }
+    this.replaceEnd(",\n", ";\n\n");
+    this.push(
+      "final _core.int number;\n\n",
+      `const ${className}_kind(this.number);\n\n`,
+      "}\n\n",
+    );
+    // The _unknown class
     this.push(
       `final class ${className}_unknown implements ${className} {\n`,
-      `const ${className}_unknown._();\n`,
-      `${className}_kind get kind => ${className}_kind.constUnknown;\n`,
-      "}\n\n");
-    this.push(
-      `enum ${className}_kind {\n`,
-      "constUnknown,\n",
-      "}\n\n");
-    // const { recordMap } = typeSpeller;
-    // const { fields } = record.record;
-    // const constantFields = fields.filter((f) => !f.type);
-    // const valueFields = fields.filter((f) => f.type);
-    // const className = typeSpeller.getClassName(record);
-    // this.push(`sealed class ${className} private constructor() {\n`);
-    // this.push(`enum class Kind {\n`, `CONST_UNKNOWN,\n`);
-    // for (const field of constantFields) {
-    //   this.push(`CONST_${field.name.text},\n`);
-    // }
-    // for (const field of valueFields) {
-    //   this.push(
-    //     `VAL_${convertCase(field.name.text, "lower_underscore", "UPPER_UNDERSCORE")},\n`,
-    //   );
-    // }
-    // this.push(
-    //   "}\n\n",
-    //   'class Unknown @kotlin.Deprecated("For internal use", kotlin.ReplaceWith("',
-    //   qualifiedName,
-    //   '.UNKNOWN")) internal constructor(\n',
-    //   `internal val _unrecognized: _UnrecognizedEnum<${qualifiedName}>?,\n`,
-    //   `) : ${qualifiedName}() {\n`,
-    //   "override val kind get() = Kind.CONST_UNKNOWN;\n\n",
-    //   "override fun equals(other: kotlin.Any?): kotlin.Boolean {\n",
-    //   "return other is Unknown;\n",
-    //   "}\n\n",
-    //   "override fun hashCode(): kotlin.Int {\n",
-    //   "return -900601970;\n",
-    //   "}\n\n",
-    //   "}\n\n", // class Unknown
-    // );
-    // for (const constField of constantFields) {
-    //   const kindExpr = `Kind.CONST_${constField.name.text}`;
-    //   const constantName = toEnumConstantName(constField);
-    //   this.push(
-    //     `object ${constantName} : ${qualifiedName}() {\n`,
-    //     `override val kind get() = ${kindExpr};\n\n`,
-    //     "init {\n",
-    //     "maybeFinalizeSerializer();\n",
-    //     "}\n",
-    //     `}\n\n`, // object
-    //   );
-    // }
-    // for (const valueField of valueFields) {
-    //   const valueType = valueField.type!;
-    //   const optionClassName =
-    //     convertCase(valueField.name.text, "lower_underscore", "UpperCamel") +
-    //     "Option";
-    //   const initializerType = typeSpeller
-    //     .getDartType(valueType, "initializer")
-    //     .toString();
-    //   const frozenType = typeSpeller
-    //     .getDartType(valueType, "frozen")
-    //     .toString();
-    //   this.pushEol();
-    //   if (initializerType === frozenType) {
-    //     this.push(
-    //       `class ${optionClassName}(\n`,
-    //       `val value: ${initializerType},\n`,
-    //       `) : ${qualifiedName}() {\n`,
-    //     );
-    //   } else {
-    //     this.push(
-    //       `class ${optionClassName} private constructor (\n`,
-    //       `val value: ${frozenType},\n`,
-    //       `) : ${qualifiedName}() {\n`,
-    //       "constructor(\n",
-    //       `value: ${initializerType},\n`,
-    //       `): this(${this.toFrozenExpression("value", valueType)}) {}\n\n`,
-    //     );
-    //   }
-    //   const kindExpr = `Kind.VAL_${convertCase(valueField.name.text, "lower_underscore", "UPPER_UNDERSCORE")}`;
-    //   this.push(
-    //     `override val kind get() = ${kindExpr};\n\n`,
-    //     "override fun equals(other: kotlin.Any?): kotlin.Boolean {\n",
-    //     `return other is ${qualifiedName}.${optionClassName} && value == other.value;\n`,
-    //     "}\n\n",
-    //     "override fun hashCode(): kotlin.Int {\n",
-    //     "return this.value.hashCode() + ",
-    //     String(simpleHash(valueField.name.text) | 0),
-    //     ";\n",
-    //     "}\n\n",
-    //     "}\n\n", // class
-    //   );
-    // }
-    // this.push(
-    //   "abstract val kind: Kind;\n\n",
-    //   "override fun toString(): kotlin.String {\n",
-    //   "return land.soia.internal.toStringImpl(\n",
-    //   "this,\n",
-    //   `${qualifiedName}.serializerImpl,\n`,
-    //   ")\n",
-    //   "}\n\n",
-    //   "companion object {\n",
-    //   'val UNKNOWN = @kotlin.Suppress("DEPRECATION") Unknown(null);\n\n',
-    // );
-    // for (const valueField of valueFields) {
-    //   const type = valueField.type!;
-    //   if (type.kind !== "record") {
-    //     continue;
-    //   }
-    //   const structLocation = typeSpeller.recordMap.get(type.key)!;
-    //   const struct = structLocation.record;
-    //   if (struct.recordType !== "struct") {
-    //     continue;
-    //   }
-    //   const structClassName = getClassName(structLocation);
-    //   const createFunName =
-    //     "create" +
-    //     convertCase(valueField.name.text, "lower_underscore", "UpperCamel");
-    //   const optionClassName =
-    //     convertCase(valueField.name.text, "lower_underscore", "UpperCamel") +
-    //     "Option";
-    //   this.push(
-    //     '@kotlin.Suppress("UNUSED_PARAMETER")\n',
-    //     `fun ${createFunName}(\n`,
-    //     "_mustNameArguments: _MustNameArguments =\n_MustNameArguments,\n",
-    //   );
-    //   for (const field of struct.fields) {
-    //     const fieldName = toLowerCamelName(field);
-    //     const type = typeSpeller.getDartType(field.type!, "initializer");
-    //     this.push(`${fieldName}: ${type},\n`);
-    //   }
-    //   this.push(
-    //     `) = ${optionClassName}(\n`,
-    //     `${structClassName.qualifiedName}(\n`,
-    //   );
-    //   for (const field of struct.fields) {
-    //     const fieldName = toLowerCamelName(field);
-    //     this.push(`${fieldName} = ${fieldName},\n`);
-    //   }
-    //   this.push(")\n", ");\n\n");
-    // }
-    // this.push(
-    //   "private val serializerImpl =\n",
-    //   `land.soia.internal.EnumSerializer.create<${qualifiedName}, Unknown>(\n`,
-    //   `recordId = "${getRecordId(record)}",\n`,
-    //   "unknownInstance = UNKNOWN,\n",
-    //   'wrapUnrecognized = { @kotlin.Suppress("DEPRECATION") Unknown(it) },\n',
-    //   "getUnrecognized = { it._unrecognized },\n)",
-    //   ";\n\n",
-    //   "val SERIALIZER = land.soia.internal.makeSerializer(serializerImpl);\n\n",
-    //   "val TYPE_DESCRIPTOR get() = serializerImpl.typeDescriptor;\n\n",
-    //   "init {\n",
-    // );
-    // for (const constField of constantFields) {
-    //   this.push(toEnumConstantName(constField), ";\n");
-    // }
-    // this.push("maybeFinalizeSerializer();\n");
-    // this.push(
-    //   "}\n\n", // init
-    //   `private var finalizationCounter = 0;\n\n`,
-    //   "private fun maybeFinalizeSerializer() {\n",
-    //   "finalizationCounter += 1;\n",
-    //   `if (finalizationCounter == ${constantFields.length + 1}) {\n`,
-    // );
-    // for (const constField of constantFields) {
-    //   this.push(
-    //     "serializerImpl.addConstantField(\n",
-    //     `${constField.number},\n`,
-    //     `"${constField.name.text}",\n`,
-    //     `${toEnumConstantName(constField)},\n`,
-    //     ");\n",
-    //   );
-    // }
-    // for (const valueField of valueFields) {
-    //   const serializerExpression = typeSpeller.getSerializerExpression(
-    //     valueField.type!,
-    //   );
-    //   const optionClassName =
-    //     convertCase(valueField.name.text, "lower_underscore", "UpperCamel") +
-    //     "Option";
-    //   this.push(
-    //     "serializerImpl.addValueField(\n",
-    //     `${valueField.number},\n`,
-    //     `"${valueField.name.text}",\n`,
-    //     `${optionClassName}::class.java,\n`,
-    //     `${serializerExpression},\n`,
-    //     `{ ${optionClassName}(it) },\n`,
-    //     ") { it.value };\n",
-    //   );
-    // }
-    // for (const removedNumber of record.record.removedNumbers) {
-    //   this.push(`serializerImpl.addRemovedNumber(${removedNumber});\n`);
-    // }
-    // this.push(
-    //   "serializerImpl.finalizeEnum();\n",
-    //   "}\n",
-    //   "}\n", // maybeFinalizeSerializer
-    //   "}\n\n", // companion object
-    // );
+      `static const _instance = ${className}_unknown._();\n\n`,
+      "final _soia.internal__UnrecognizedEnum? _u;\n\n",
+      `const ${className}_unknown._() : _u = null;\n`,
+      `${className}_unknown._unrecognized(this._u);\n\n`,
+      `${className}_kind get kind => ${className}_kind.unknown;\n`,
+      "_core.bool get isUnknown => true;\n",
+      "}\n\n",
+    );
+    // The _consts_ internal enum
+    if (constantFields.length) {
+      this.push(`enum _${className}_consts implements ${className} {\n`);
+      for (const field of constantFields) {
+        const name = toLowerCamel(field) + "Const";
+        this.push(`${name}(${className}_kind.${name}),\n`);
+      }
+      this.replaceEnd(",\n", ";\n\n");
+      this.push(
+        `final ${className}_kind kind;\n\n`,
+        `const _${className}_consts(this.kind);\n\n`,
+        "_core.bool get isUnknown => false;\n",
+      );
+      this.push("}\n\n"); // enum _consts
+    }
+    if (valueFields.length) {
+      // The _wrapper abstract class
+      this.push(
+        `sealed class _${className}_wrapper implements ${className} {\n`,
+        "_core.bool get isUnknown => false;\n",
+        "}\n\n",
+      );
+      for (const field of valueFields) {
+        const dartType = typeSpeller.getDartType(field.type!, "frozen");
+        this.push(
+          `final class ${className}_${toLowerCamel(field)}Wrapper `,
+          `extends _${className}_wrapper {\n`,
+          `final ${dartType} value;\n\n`,
+          `${className}_${toLowerCamel(field)}Wrapper._(this.value);\n\n`,
+          `${className}_kind get kind => ${className}_kind.${toLowerCamel(field)}Wrapper;\n`,
+          "}\n\n",
+        );
+      }
+    }
   }
 
   private writeMethod(method: Method): void {
@@ -465,7 +429,7 @@ class DartSourceFileGenerator {
 
   private writeConstant(constant: Constant): void {
     const { typeSpeller } = this;
-    const name = constant.name.text;
+    const name = toTopLevelConstantName(constant);
     const type = typeSpeller.getDartType(constant.type!, "frozen");
     const serializerExpression = typeSpeller.getSerializerExpression(
       constant.type!,
@@ -474,10 +438,10 @@ class DartSourceFileGenerator {
       JSON.stringify(constant.valueAsDenseJson),
     );
     this.push(
-      `val ${name}: ${type} by kotlin.lazy {\n`,
+      `final ${type} ${name} = (\n`,
       serializerExpression,
       `.fromJsonCode(${jsonStringLiteral})\n`,
-      "}\n\n",
+      ");\n\n",
     );
   }
 
@@ -546,7 +510,7 @@ class DartSourceFileGenerator {
         const itemToFrozenExpr = this.toFrozenExpression("it", type.item);
         if (type.key) {
           const path = type.key.path
-            .map((f) => toLowerCamelName(f.name.text))
+            .map((f) => structFieldToDartName(f.name.text))
             .join(".");
           if (itemToFrozenExpr === "it") {
             return `_soia.internal__keyedCopy(${inputExpr}, "${path}", (it) => it.${path})`;
@@ -598,6 +562,13 @@ class DartSourceFileGenerator {
       this.push(`import "${dartPath}" as ${alias};\n`);
     }
     this.pushEol();
+  }
+
+  private replaceEnd(searchString: string, replaceString: string): void {
+    if (!this.code.endsWith(searchString)) {
+      throw new Error();
+    }
+    this.code = this.code.slice(0, -searchString.length) + replaceString;
   }
 
   private push(...code: string[]): void {
@@ -710,9 +681,9 @@ class DartSourceFileGenerator {
   private code = "";
 }
 
-function getRecordId(struct: RecordLocation): string {
-  const modulePath = struct.modulePath;
-  const qualifiedRecordName = struct.recordAncestors
+function getRecordId(record: RecordLocation): string {
+  const modulePath = record.modulePath;
+  const qualifiedRecordName = record.recordAncestors
     .map((r) => r.name.text)
     .join(".");
   return `${modulePath}:${qualifiedRecordName}`;

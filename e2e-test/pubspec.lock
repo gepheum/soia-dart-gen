@@ -69,10 +69,10 @@ packages:
     dependency: "direct main"
     description:
       name: soia
-      sha256: "9fe1bd5c0a5267eb59d41765c943a29827d6322fdfa2e8c36709c72e2560796e"
+      sha256: "6f072781c1cafe98cc4c41938180f63c2a3315b6824489561b96ee801381194a"
       url: "https://pub.dev"
     source: hosted
-    version: "0.1.5"
+    version: "0.1.9"
   source_span:
     dependency: transitive
     description:

@@ -1,11 +1,62 @@
-import { Field, Module, RecordLocation, convertCase } from "soiac";
+import { Constant, Field, Module, RecordLocation, convertCase } from "soiac";
 
-export function toLowerCamelName(field: Field | string): string {
-  const inputName = typeof field === "string" ? field : field.name.text;
-  const convertCaseResult = convertCase(inputName, "lower_underscore", "lowerCamel");
-  return (DART_KEYWORDS.has(convertCaseResult) || GENERATED_LOWER_CAMEL_SYMBOLS.has(convertCaseResult))
+export function structFieldToDartName(field: Field | string): string {
+  const soiaName = typeof field === "string" ? field : field.name.text;
+  const convertCaseResult = convertCase(
+    soiaName,
+    "lower_underscore",
+    "lowerCamel",
+  );
+  return DART_KEYWORDS.has(convertCaseResult) ||
+    DART_OBJECT_SYMBOLS.has(convertCaseResult) ||
+    GENERATED_STRUCT_SYMBOLS.has(convertCaseResult)
     ? convertCaseResult + "_"
     : convertCaseResult;
+}
+
+export function enumFieldToDartName(field: Field): string {
+  const soiaName = field.name.text;
+  const convertCaseResult = convertCase(
+    soiaName,
+    field.type ? "lower_underscore" : "UPPER_UNDERSCORE",
+    "lowerCamel",
+  );
+  return DART_KEYWORDS.has(convertCaseResult) ||
+    DART_OBJECT_SYMBOLS.has(convertCaseResult) ||
+    GENERATED_ENUM_SYMBOLS.has(convertCaseResult) ||
+    soiaName.startsWith("wrap_") ||
+    soiaName.startsWith("create_")
+    ? convertCaseResult + "_"
+    : convertCaseResult;
+}
+
+export function toLowerCamel(field: Field): string {
+  const soiaName = field.name.text;
+  return convertCase(
+    soiaName,
+    field.type ? "lower_underscore" : "UPPER_UNDERSCORE",
+    "lowerCamel",
+  );
+}
+
+export function toUpperCamel(field: Field): string {
+  const soiaName = field.name.text;
+  return convertCase(
+    soiaName,
+    field.type ? "lower_underscore" : "UPPER_UNDERSCORE",
+    "UpperCamel",
+  );
+}
+
+export function toTopLevelConstantName(constant: Constant): string {
+  const soiaName = constant.name.text;
+  const convertCaseResult = convertCase(
+    soiaName,
+    "UPPER_UNDERSCORE",
+    "lowerCamel",
+  );
+  return DART_KEYWORDS.has(convertCaseResult)
+    ? convertCaseResult + "_" : convertCaseResult
 }
 
 /** Returns the name of the frozen Dart class for the given record. */
@@ -102,30 +153,23 @@ const DART_KEYWORDS: ReadonlySet<string> = new Set([
   "yield",
 ]);
 
-export function toEnumConstantName(field: Field): string {
-  // TODO: fix
-  return GENERATED_LOWER_CAMEL_SYMBOLS.has(field.name.text)
-    ? field.name.text + "_"
-    : field.name.text;
-}
-
-export interface ClassName {
-  /** The name right after the 'class' keyword.. */
-  name: string;
-  /**
-   * Fully qualified class name.
-   * Examples: 'soiagen.Foo', 'soiagen.Foo.Bar'
-   */
-  qualifiedName: string;
-}
-
-const GENERATED_LOWER_CAMEL_SYMBOLS: ReadonlySet<string> = new Set([
+const DART_OBJECT_SYMBOLS: ReadonlySet<string> = new Set([
   "hashCode",
-  "defaultInstance",
-  "mutable",
   "noSuchMethod",
   "runtimeType",
+  "toString",
+]);
+
+const GENERATED_STRUCT_SYMBOLS: ReadonlySet<string> = new Set([
+  "defaultInstance",
+  "mutable",
+  "serializer",
   "toFrozen",
   "toMutable",
-  "toString",
+]);
+
+const GENERATED_ENUM_SYMBOLS: ReadonlySet<string> = new Set([
+  "isUnknown",
+  "kind",
+  "serializer",
 ]);
