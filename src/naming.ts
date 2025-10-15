@@ -56,7 +56,8 @@ export function toTopLevelConstantName(constant: Constant): string {
     "lowerCamel",
   );
   return DART_KEYWORDS.has(convertCaseResult)
-    ? convertCaseResult + "_" : convertCaseResult
+    ? convertCaseResult + "_"
+    : convertCaseResult;
 }
 
 /** Returns the name of the frozen Dart class for the given record. */

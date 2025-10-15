@@ -1,17 +1,14 @@
-// Add the "createStruct" things in enums
 // Add equals, hashCode, toString...
 // Take a pass at this code
 // Format a bit better
 //   Add long comment lines "----" between record definitions
 // TODO: constants
-// TODO: enums
+// TODO: unit tests
 // TODO: client:
 //   - Remove Kind type parameter in EnumSerializer, I think I can just use number...
 
 import * as paths from "path";
 import {
-  convertCase,
-  Field,
   type CodeGenerator,
   type Constant,
   type Method,
@@ -21,7 +18,14 @@ import {
   type ResolvedType,
 } from "soiac";
 import { z } from "zod";
-import { enumFieldToDartName, getModuleAlias, structFieldToDartName, toLowerCamel, toTopLevelConstantName, toUpperCamel } from "./naming.js";
+import {
+  enumFieldToDartName,
+  getModuleAlias,
+  structFieldToDartName,
+  toLowerCamel,
+  toTopLevelConstantName,
+  toUpperCamel,
+} from "./naming.js";
 import { TypeSpeller } from "./type_speller.js";
 
 const Config = z.object({});
@@ -102,14 +106,15 @@ class DartSourceFileGenerator {
     const className = typeSpeller.getClassName(struct);
     this.push(`sealed class ${className}_orMutable {\n`);
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
+      const dartName = structFieldToDartName(field);
       const allRecordsFrozen = field.isRecursive === "hard";
-      const type = typeSpeller.getDartType(
-        field.type!,
+      const type = field.type!;
+      const dartType = typeSpeller.getDartType(
+        type,
         "maybe-mutable",
         allRecordsFrozen,
       );
-      this.push(`${type} get ${fieldName};\n`);
+      this.push(`${dartType} get ${dartName};\n`);
     }
     if (fields.length) {
       this.pushEol();
@@ -121,16 +126,17 @@ class DartSourceFileGenerator {
     );
 
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
-      const type = typeSpeller.getDartType(field.type!, "frozen");
+      const dartName = structFieldToDartName(field);
+      const type = field.type!;
+      const dartType = typeSpeller.getDartType(type, "frozen");
       if (field.isRecursive === "hard") {
-        this.push(`final ${type}? _rec_${fieldName};\n`);
-        const defaultExpr = this.getDefaultExpression(field.type!).expression;
+        this.push(`final ${dartType}? _rec_${dartName};\n`);
+        const defaultExpr = this.getDefaultExpression(type).expression;
         this.push(
-          `${type} get ${fieldName} => _rec_${fieldName} ?? ${defaultExpr};\n`,
+          `${dartType} get ${dartName} => _rec_${dartName} ?? ${defaultExpr};\n`,
         );
       } else {
-        this.push(`final ${type} ${fieldName};\n`);
+        this.push(`final ${dartType} ${dartName};\n`);
       }
     }
     this.push(`_soia.internal__UnrecognizedFields? _u;\n\n`);
@@ -139,15 +145,15 @@ class DartSourceFileGenerator {
     this.push(`factory ${className}(`);
     this.push(fields.length ? "{\n" : "");
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
-      const type = typeSpeller.getDartType(field.type!, "initializer");
-      this.push(`required ${type} ${fieldName},\n`);
+      const dartName = structFieldToDartName(field);
+      const dartType = typeSpeller.getDartType(field.type!, "initializer");
+      this.push(`required ${dartType} ${dartName},\n`);
     }
     this.push(fields.length ? "}" : "");
     this.push(`) => ${className}._(\n`);
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
-      const toFrozenExpr = this.toFrozenExpression(fieldName, field.type!);
+      const dartName = structFieldToDartName(field);
+      const toFrozenExpr = this.toFrozenExpression(dartName, field.type!);
       this.push(`${toFrozenExpr},\n`);
     }
     this.push(");\n\n");
@@ -155,16 +161,17 @@ class DartSourceFileGenerator {
     // Private constructor
     this.push(`${className}._(\n`);
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
+      const dartName = structFieldToDartName(field);
       if (field.isRecursive === "hard") {
-        this.push(`this._rec_${fieldName},\n`);
+        this.push(`this._rec_${dartName},\n`);
       } else {
-        this.push(`this.${fieldName},\n`);
+        this.push(`this.${dartName},\n`);
       }
     }
-    this.push(");\n\n");
-
-    this.push(`static final defaultInstance = ${className}._(\n`);
+    this.push(
+      ");\n\n", //
+      `static final defaultInstance = ${className}._(\n`,
+    );
     for (const field of fields) {
       if (field.isRecursive === "hard") {
         this.push("null,\n");
@@ -195,16 +202,16 @@ class DartSourceFileGenerator {
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
+      const dartName = structFieldToDartName(field);
       const serializerExpr = typeSpeller.getSerializerExpression(field.type!);
       this.push(
         "_serializerBuilder.addField(\n",
         `"${field.name.text}",\n`,
-        `"${fieldName}",\n`,
+        `"${dartName}",\n`,
         `${field.number},\n`,
         `${serializerExpr},\n`,
-        `(it) => it.${fieldName},\n`,
-        `(it, v) => it.${fieldName} = v,\n`,
+        `(it) => it.${dartName},\n`,
+        `(it, v) => it.${dartName} = v,\n`,
         ");\n",
       );
     }
@@ -225,33 +232,35 @@ class DartSourceFileGenerator {
       `${className}_mutable toMutable() => ${className}_mutable._(\n`,
     );
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
-      this.push(`this.${fieldName},\n`);
+      const dartName = structFieldToDartName(field);
+      this.push(`this.${dartName},\n`);
     }
-    this.push(");\n");
-
-    this.push("}\n\n"); // class frozen
+    this.push(
+      ");\n", //
+      "}\n\n",
+    ); // class frozen
 
     this.push(
       `final class ${className}_mutable implements ${className}_orMutable {\n\n`,
     );
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
+      const dartName = structFieldToDartName(field);
       const allRecordsFrozen = field.isRecursive === "hard";
-      const type = typeSpeller.getDartType(
-        field.type!,
+      const type = field.type!;
+      const dartType = typeSpeller.getDartType(
+        type,
         "maybe-mutable",
         allRecordsFrozen,
       );
-      this.push(`${type} ${fieldName};\n`);
+      this.push(`${dartType} ${dartName};\n`);
     }
     this.push(
       `_soia.internal__UnrecognizedFields? _u;\n\n`,
       `${className}_mutable._(\n`,
     );
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
-      this.push(`this.${fieldName},\n`);
+      const dartName = structFieldToDartName(field);
+      this.push(`this.${dartName},\n`);
     }
     this.push(
       `);\n\n`,
@@ -259,8 +268,8 @@ class DartSourceFileGenerator {
       `${className} toFrozen() => ${className}(\n`,
     );
     for (const field of fields) {
-      const fieldName = structFieldToDartName(field);
-      this.push(`${fieldName}: this.${fieldName},\n`);
+      const dartName = structFieldToDartName(field);
+      this.push(`${dartName}: this.${dartName},\n`);
     }
     this.push(
       ").._u = this._u;\n",
@@ -287,12 +296,36 @@ class DartSourceFileGenerator {
     }
     this.pushEol();
     for (const field of valueFields) {
-      const dartType = typeSpeller.getDartType(field.type!, "frozen");
+      const type = field.type!;
+      const dartType = typeSpeller.getDartType(type, "frozen");
       this.push(
         `factory ${className}.wrap${toUpperCamel(field)}(\n`,
         `${dartType} value\n`,
         `) => ${className}_${toLowerCamel(field)}Wrapper._(value);\n\n`,
       );
+      if (type.kind === "record") {
+        const record = typeSpeller.recordMap.get(type.key)!;
+        if (record.record.recordType === "struct") {
+          const struct = record.record;
+          this.push(`factory ${className}.create${toUpperCamel(field)}(`);
+          const structFields = struct.fields;
+          this.push(structFields.length ? "{\n" : "");
+          for (const structField of structFields) {
+            const dartName = structFieldToDartName(structField);
+            const structType = structField.type!;
+            const dartType = typeSpeller.getDartType(structType, "initializer");
+            this.push(`required ${dartType} ${dartName},\n`);
+          }
+          this.push(structFields.length ? "}" : "");
+          this.push(`) => ${className}.wrap${toUpperCamel(field)}(\n`);
+          this.push(`${typeSpeller.getClassName(record)}(\n`);
+          for (const structField of structFields) {
+            const dartName = structFieldToDartName(structField);
+            this.push(`${dartName}: ${dartName},\n`);
+          }
+          this.push(")\n", ");\n\n");
+        }
+      }
     }
     this.push(`\n${className}_kind get kind;\n`);
     this.push(
@@ -305,7 +338,8 @@ class DartSourceFileGenerator {
         "_serializerBuilder.addConstantField(\n",
         `"${constantField.name.text}",\n`,
         `${enumFieldToDartName(constantField)},\n`,
-        ");\n");
+        ");\n",
+      );
     }
     for (const valueField of valueFields) {
       const type = valueField.type!;
@@ -317,7 +351,8 @@ class DartSourceFileGenerator {
         `${serializerExpr},\n`,
         `${className}_${toLowerCamel(valueField)}Wrapper._,\n`,
         "(it) => it.value,\n",
-        ");\n");
+        ");\n",
+      );
     }
     for (const removedNumber of record.record.removedNumbers) {
       this.push(`_serializerBuilder.addRemovedNumber(${removedNumber});\n`);
@@ -429,20 +464,53 @@ class DartSourceFileGenerator {
 
   private writeConstant(constant: Constant): void {
     const { typeSpeller } = this;
+    const type = constant.type!;
     const name = toTopLevelConstantName(constant);
-    const type = typeSpeller.getDartType(constant.type!, "frozen");
-    const serializerExpression = typeSpeller.getSerializerExpression(
-      constant.type!,
-    );
-    const jsonStringLiteral = JSON.stringify(
-      JSON.stringify(constant.valueAsDenseJson),
-    );
-    this.push(
-      `final ${type} ${name} = (\n`,
-      serializerExpression,
-      `.fromJsonCode(${jsonStringLiteral})\n`,
-      ");\n\n",
-    );
+    const dartType = typeSpeller.getDartType(type, "frozen");
+    const tryGetDartConstLiteral: () => string | undefined = () => {
+      if (type.kind !== "primitive") {
+        return undefined;
+      }
+      switch (type.primitive) {
+        case "bool":
+        case "int32":
+        case "int64":
+        case "uint64":
+        case "string":
+          return JSON.stringify(constant.valueAsDenseJson);
+        case "float32":
+        case "float64":
+          const number = constant.valueAsDenseJson as number;
+          if (Number.isFinite(number)) {
+            return JSON.stringify(number);
+          } else if (Number.isNaN(number)) {
+            return "double.nan";
+          } else if (number > 0) {
+            return "double.infinity";
+          } else {
+            return "-double.infinity";
+          }
+        default:
+          return undefined;
+      }
+    };
+    const dartConstLiteral = tryGetDartConstLiteral();
+    if (dartConstLiteral !== undefined) {
+      this.push(`const ${dartType} ${name} = ${dartConstLiteral};`);
+    } else {
+      const serializerExpression = typeSpeller.getSerializerExpression(
+        constant.type!,
+      );
+      const jsonStringLiteral = JSON.stringify(
+        JSON.stringify(constant.valueAsDenseJson),
+      );
+      this.push(
+        `final ${dartType} ${name} = (\n`,
+        serializerExpression,
+        `.fromJsonCode(${jsonStringLiteral})\n`,
+        ");\n\n",
+      );
+    }
   }
 
   private getDefaultExpression(type: ResolvedType): {
