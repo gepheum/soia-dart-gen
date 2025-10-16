@@ -1,11 +1,6 @@
-// Add equals, hashCode, toString...
-// Take a pass at this code
-// Format a bit better
-//   Add long comment lines "----" between record definitions
-// TODO: constants
 // TODO: unit tests
-// TODO: client:
-//   - Remove Kind type parameter in EnumSerializer, I think I can just use number...
+// TODO: set up pre-commit hook
+// TODO: bug in Client: enum field numbers may not be consecutive
 
 import * as paths from "path";
 import {
@@ -104,7 +99,12 @@ class DartSourceFileGenerator {
     const { typeSpeller } = this;
     const { fields } = struct.record;
     const className = typeSpeller.getClassName(struct);
-    this.push(`sealed class ${className}_orMutable {\n`);
+    this.push(
+      `${DartSourceFileGenerator.SEPARATOR}\n`,
+      `// struct ${className.replace("_", ".")}\n`,
+      `${DartSourceFileGenerator.SEPARATOR}\n\n`,
+      `sealed class ${className}_orMutable {\n`,
+    );
     for (const field of fields) {
       const dartName = structFieldToDartName(field);
       const allRecordsFrozen = field.isRecursive === "hard";
@@ -192,7 +192,6 @@ class DartSourceFileGenerator {
 
     this.push(
       "@_core.deprecated\n",
-      "@_core.override\n",
       `${className} toFrozen() => this;\n\n`,
       `${className}_mutable toMutable() => ${className}_mutable._(\n`,
     );
@@ -202,6 +201,30 @@ class DartSourceFileGenerator {
     }
     this.push(
       ");\n\n",
+      "_core.bool equals(other) {\n",
+      "if (_core.identical(this, other)) return true;\n",
+      `if (other is! ${className}) return false;\n`,
+      "return _equality_proxy == other._equality_proxy;\n",
+      "}\n\n",
+      "_core.int get hashCode => _equality_proxy.hashCode;\n\n",
+      "get _equality_proxy => ",
+    );
+    if (fields.length === 0) {
+      this.push("const []");
+    } else if (fields.length === 1) {
+      const dartName = structFieldToDartName(fields[0]!);
+      this.push(`this.${dartName}`);
+    } else {
+      this.push("[\n");
+      for (const field of fields) {
+        const dartName = structFieldToDartName(field);
+        this.push(`this.${dartName},\n`);
+      }
+      this.push("]");
+    }
+    this.push(
+      ";\n\n",
+      "_core.String toString() => _soia.internal__stringify(this, serializer);\n\n",
       `static _soia.StructSerializer<${className}, ${className}_mutable> get serializer {\n`,
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
@@ -234,7 +257,7 @@ class DartSourceFileGenerator {
       `toFrozen: (${className}_mutable it) => it.toFrozen(),\n`,
       "getUnrecognizedFields: (it) => it._u,\n",
       "setUnrecognizedFields: (it, u) => it._u = u,\n",
-      ");\n",
+      ");\n\n",
       "}\n\n",
     ); // class frozen
 
@@ -262,7 +285,6 @@ class DartSourceFileGenerator {
     }
     this.push(
       `);\n\n`,
-      "@_core.override\n",
       `${className} toFrozen() => ${className}(\n`,
     );
     for (const field of fields) {
@@ -283,6 +305,9 @@ class DartSourceFileGenerator {
     const className = typeSpeller.getClassName(record);
     // The actual enum class
     this.push(
+      `${DartSourceFileGenerator.SEPARATOR}\n`,
+      `// enum ${className.replace("_", ".")}\n`,
+      `${DartSourceFileGenerator.SEPARATOR}\n\n`,
       `sealed class ${className} {\n`,
       `static const ${className} unknown = ${className}_unknown._instance;\n\n`,
     );
@@ -332,10 +357,13 @@ class DartSourceFileGenerator {
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
     for (const constantField of constantFields) {
+      const dartName = enumFieldToDartName(constantField)
       this.push(
         "_serializerBuilder.addConstantField(\n",
+        `${constantField.number},\n`,
         `"${constantField.name.text}",\n`,
-        `${enumFieldToDartName(constantField)},\n`,
+        `"${dartName}",\n`,
+        `${dartName},\n`,
         ");\n",
       );
     }
@@ -344,11 +372,13 @@ class DartSourceFileGenerator {
       const serializerExpr = typeSpeller.getSerializerExpression(type);
       this.push(
         "_serializerBuilder.addValueField(\n",
+        `${valueField.number},\n`,
         `"${valueField.name.text}",\n`,
-        `${className}_kind.${toLowerCamel(valueField)}Wrapper,\n`,
+        `"wrap${toUpperCamel(valueField)}",\n`,
         `${serializerExpr},\n`,
         `${className}_${toLowerCamel(valueField)}Wrapper._,\n`,
         "(it) => it.value,\n",
+        `ordinal: ${className}_kind.${toLowerCamel(valueField)}Wrapper._ordinal,\n`,
         ");\n",
       );
     }
@@ -364,8 +394,7 @@ class DartSourceFileGenerator {
       `recordId: "${getRecordId(record)}",\n`,
       `unknownInstance: ${className}_unknown._instance,\n`,
       `enumInstance: ${className}.unknown,\n`,
-      `getKind: (it) => it.kind,\n`,
-      `getNumber: (it) => it.number,\n`,
+      `getOrdinal: (it) => it.kind._ordinal,\n`,
       `wrapUnrecognized: ${className}_unknown._unrecognized,\n`,
       `getUnrecognized: (it) => it._u,\n`,
       ");\n",
@@ -376,16 +405,19 @@ class DartSourceFileGenerator {
       `enum ${className}_kind {\n`, //
       "unknown(0),\n",
     );
+    let ordinalCounter = 1;
     for (const field of constantFields) {
-      this.push(`${toLowerCamel(field)}Const(${field.number}),\n`);
+      const ordinal = ordinalCounter++;
+      this.push(`${toLowerCamel(field)}Const(${ordinal}),\n`);
     }
     for (const field of valueFields) {
-      this.push(`${toLowerCamel(field)}Wrapper(${field.number}),\n`);
+      const ordinal = ordinalCounter++;
+      this.push(`${toLowerCamel(field)}Wrapper(${ordinal}),\n`);
     }
     this.replaceEnd(",\n", ";\n\n");
     this.push(
-      "final _core.int number;\n\n",
-      `const ${className}_kind(this.number);\n\n`,
+      "final _core.int _ordinal;\n\n",
+      `const ${className}_kind(this._ordinal);\n\n`,
       "}\n\n",
     );
     // The _unknown class
@@ -396,7 +428,9 @@ class DartSourceFileGenerator {
       `const ${className}_unknown._() : _u = null;\n`,
       `${className}_unknown._unrecognized(this._u);\n\n`,
       `${className}_kind get kind => ${className}_kind.unknown;\n`,
-      "_core.bool get isUnknown => true;\n",
+      "_core.bool get isUnknown => true;\n\n",
+      "_core.String toString() => _soia.internal__stringify(this, ",
+      `${className}.serializer);\n`,
       "}\n\n",
     );
     // The _consts_ internal enum
@@ -410,7 +444,9 @@ class DartSourceFileGenerator {
       this.push(
         `final ${className}_kind kind;\n\n`,
         `const _${className}_consts(this.kind);\n\n`,
-        "_core.bool get isUnknown => false;\n",
+        "_core.bool get isUnknown => false;\n\n",
+        "_core.String toString() => _soia.internal__stringify(this, ",
+        `${className}.serializer);\n`,
       );
       this.push("}\n\n"); // enum _consts
     }
@@ -419,6 +455,14 @@ class DartSourceFileGenerator {
       this.push(
         `sealed class _${className}_wrapper implements ${className} {\n`,
         "_core.bool get isUnknown => false;\n",
+        "_core.dynamic get value;\n\n",
+        "_core.bool equals(other) {\n",
+        `if (other is! _${className}_wrapper) return false;\n`,
+        "return kind == other.kind && value == other.value;\n",
+        "}\n\n",
+        "_core.int get hashCode => (kind._ordinal * 31) ^ value.hashCode;\n\n",
+        "_core.String toString() => _soia.internal__stringify(this, ",
+        `${className}.serializer);\n`,
         "}\n\n",
       );
       for (const field of valueFields) {
@@ -742,6 +786,8 @@ class DartSourceFileGenerator {
         .replace(/\n\n$/g, "\n")
     );
   }
+
+  private static readonly SEPARATOR = `// ${"-".repeat(80 - "// ".length)}`;
 
   private readonly typeSpeller: TypeSpeller;
   private code = "";
