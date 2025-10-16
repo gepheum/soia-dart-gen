@@ -1,6 +1,6 @@
 // TODO: unit tests
+// TODO: I think in method generation, I want to add the "Method" suffix
 // TODO: set up pre-commit hook
-// TODO: bug in Client: enum field numbers may not be consecutive
 
 import * as paths from "path";
 import {
@@ -204,26 +204,17 @@ class DartSourceFileGenerator {
       "_core.bool equals(other) {\n",
       "if (_core.identical(this, other)) return true;\n",
       `if (other is! ${className}) return false;\n`,
-      "return _equality_proxy == other._equality_proxy;\n",
+      "return _soia.internal__listEquality.equals(_equality_proxy, other._equality_proxy);\n",
       "}\n\n",
-      "_core.int get hashCode => _equality_proxy.hashCode;\n\n",
-      "get _equality_proxy => ",
+      "_core.int get hashCode => _soia.internal__listEquality.hash(_equality_proxy);\n\n",
+      "_core.List get _equality_proxy => [\n",
     );
-    if (fields.length === 0) {
-      this.push("const []");
-    } else if (fields.length === 1) {
-      const dartName = structFieldToDartName(fields[0]!);
-      this.push(`this.${dartName}`);
-    } else {
-      this.push("[\n");
-      for (const field of fields) {
-        const dartName = structFieldToDartName(field);
-        this.push(`this.${dartName},\n`);
-      }
-      this.push("]");
+    for (const field of fields) {
+      const dartName = structFieldToDartName(field);
+      this.push(`this.${dartName},\n`);
     }
     this.push(
-      ";\n\n",
+      "];\n\n",
       "_core.String toString() => _soia.internal__stringify(this, serializer);\n\n",
       `static _soia.StructSerializer<${className}, ${className}_mutable> get serializer {\n`,
       "if (_serializerBuilder.mustInitialize()) {\n",

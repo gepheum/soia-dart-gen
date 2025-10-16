@@ -5,5 +5,5 @@ generators:
     config: {}
 
 mirroredSoiagenDirs:
-  - path: src/soiagen
+  - path: ./soiagen
     fileRegex: "\\.dart$"
