@@ -9,7 +9,8 @@ export function structFieldToDartName(field: Field | string): string {
   );
   return DART_KEYWORDS.has(convertCaseResult) ||
     DART_OBJECT_SYMBOLS.has(convertCaseResult) ||
-    GENERATED_STRUCT_SYMBOLS.has(convertCaseResult)
+    GENERATED_STRUCT_SYMBOLS.has(convertCaseResult) ||
+    soiaName.startsWith("mutable_")
     ? convertCaseResult + "_"
     : convertCaseResult;
 }
@@ -55,7 +56,7 @@ export function toTopLevelConstantName(constant: Constant): string {
     "UPPER_UNDERSCORE",
     "lowerCamel",
   );
-  return DART_KEYWORDS.has(convertCaseResult)
+  return DART_KEYWORDS.has(convertCaseResult) || soiaName.endsWith("_METHOD")
     ? convertCaseResult + "_"
     : convertCaseResult;
 }

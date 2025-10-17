@@ -125,6 +125,7 @@ struct Name {
       name2: Name2;
     }
   }
+  mutable_name: Name1;
 }
 
 struct Floats {

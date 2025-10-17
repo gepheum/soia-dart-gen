@@ -1,9 +1,11 @@
 // TODO: unit tests
-// TODO: I think in method generation, I want to add the "Method" suffix
 // TODO: set up pre-commit hook
+// TODO: README
 
 import * as paths from "path";
 import {
+  convertCase,
+  Field,
   type CodeGenerator,
   type Constant,
   type Method,
@@ -274,10 +276,9 @@ class DartSourceFileGenerator {
       const dartName = structFieldToDartName(field);
       this.push(`this.${dartName},\n`);
     }
-    this.push(
-      `);\n\n`,
-      `${className} toFrozen() => ${className}(\n`,
-    );
+    this.push(");\n\n");
+    this.writeMutableGetters(fields);
+    this.push(`${className} toFrozen() => ${className}(\n`);
     for (const field of fields) {
       const dartName = structFieldToDartName(field);
       this.push(`${dartName}: this.${dartName},\n`);
@@ -286,6 +287,55 @@ class DartSourceFileGenerator {
       ").._u = this._u;\n",
       "}\n\n", // class _mutable
     );
+  }
+
+  private writeMutableGetters(fields: readonly Field[]): void {
+    const { typeSpeller } = this;
+    for (const field of fields) {
+      if (field.isRecursive) {
+        continue;
+      }
+      const type = field.type!;
+      const dartName = structFieldToDartName(field);
+      const mutableGetterName =
+        "mutable" +
+        convertCase(field.name.text, "lower_underscore", "UpperCamel");
+      const mutableType = typeSpeller.getDartType(field.type!, "mutable");
+      const accessor = `this.${dartName}`;
+      let bodyLines: string[] = [];
+      if (type.kind === "array") {
+        const typeParameter = mutableType.substring(mutableType.indexOf('<'));
+        bodyLines = [
+          `if (value is _soia.internal__MutableList${typeParameter}) {\n`,
+          "  return value;\n",
+          "} else {\n",
+          `  return ${accessor} = _soia.internal__MutableList([...value]);\n`,
+          "}\n",
+        ];
+      } else if (type.kind === "record") {
+        const record = this.typeSpeller.recordMap.get(type.key)!;
+        if (record.record.recordType === "struct") {
+          const structQualifiedName = typeSpeller.getClassName(record);
+          bodyLines = [
+            `if (value is ${structQualifiedName}_mutable) {\n`,
+            "  return value;\n",
+            "} else {\n",
+            `  return ${accessor} = (value as ${structQualifiedName}).toMutable();\n`,
+            "}\n",
+          ];
+        }
+      }
+      if (bodyLines.length) {
+        this.push(
+          `${mutableType} get ${mutableGetterName} {\n`,
+          `final value = ${accessor};\n`,
+        );
+        for (const line of bodyLines) {
+          this.push(line);
+        }
+        this.push("}\n\n");
+      }
+    }
   }
 
   private writeClassesForEnum(record: RecordLocation): void {
@@ -473,6 +523,11 @@ class DartSourceFileGenerator {
   private writeMethod(method: Method): void {
     const { typeSpeller } = this;
     const methodName = method.name.text;
+    const soiaName = convertCase(
+      methodName,
+      "UpperCamel",
+      "lowerCamel",
+    ) + "Method";
     const requestType = typeSpeller.getDartType(method.requestType!, "frozen");
     const requestSerializerExpr = typeSpeller.getSerializerExpression(
       method.requestType!,
@@ -485,7 +540,7 @@ class DartSourceFileGenerator {
       method.responseType!,
     );
     this.push(
-      `final _soia.Method<\n${requestType},\n${responseType}\n> ${methodName} = \n`,
+      `final _soia.Method<\n${requestType},\n${responseType}\n> ${soiaName} = \n`,
       "_soia.Method(\n",
       `"${methodName}",\n`,
       `${method.number},\n`,
