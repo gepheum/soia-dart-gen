@@ -203,7 +203,7 @@ class DartSourceFileGenerator {
     }
     this.push(
       ");\n\n",
-      "_core.bool equals(other) {\n",
+      "_core.bool operator ==(other) {\n",
       "if (_core.identical(this, other)) return true;\n",
       `if (other is! ${className}) return false;\n`,
       "return _soia.internal__listEquality.equals(_equality_proxy, other._equality_proxy);\n",
@@ -497,7 +497,7 @@ class DartSourceFileGenerator {
         `sealed class _${className}_wrapper implements ${className} {\n`,
         "_core.bool get isUnknown => false;\n",
         "_core.dynamic get value;\n\n",
-        "_core.bool equals(other) {\n",
+        "_core.bool operator ==(other) {\n",
         `if (other is! _${className}_wrapper) return false;\n`,
         "return kind == other.kind && value == other.value;\n",
         "}\n\n",

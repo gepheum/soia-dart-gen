@@ -6,7 +6,7 @@ environment:
   sdk: '>=3.5.0 <4.0.0'
 
 dependencies:
-  soia: ^0.1.12
+  soia: ^0.1.13
 
 dev_dependencies:
   lints: ^5.0.0

@@ -13,21 +13,17 @@ void main() {
     test('toString() formatting', () {
       final fullName = full_name.FullName(
         firstName: "John",
-        lastName: "Doe",
-      );
-
-      // Note: The actual toString() format may differ from Kotlin implementation
-      // In Dart, it should produce a readable string representation
-      final result = fullName.toString();
-      expect(result, contains("John"));
-      expect(result, contains("Doe"));
-
-      final partialFullName = full_name.FullName(
-        firstName: "John",
         lastName: "",
       );
-      final partialResult = partialFullName.toString();
-      expect(partialResult, contains("John"));
+      expect(
+          fullName.toString(),
+          equals('FullName(\n'
+              '  firstName: "John",\n'
+              '  lastName: "",\n'
+              ')'));
+
+      expect(full_name.FullName.defaultInstance.toString(),
+          equals('FullName.defaultInstance'));
 
       final triangle = structs.Triangle(
         color: structs.Color(
@@ -41,10 +37,26 @@ void main() {
           structs.Point(x: 0, y: 20),
         ],
       );
-      final triangleResult = triangle.toString();
-      expect(triangleResult, contains("127"));
-      expect(triangleResult, contains("128"));
-      expect(triangleResult, contains("139"));
+      expect(
+          triangle.toString(),
+          equals('Triangle(\n'
+              '  color: Color(\n'
+              '    r: 127,\n'
+              '    g: 128,\n'
+              '    b: 139,\n'
+              '  ),\n'
+              '  points: [\n'
+              '    Point.defaultInstance,\n'
+              '    Point(\n'
+              '      x: 10,\n'
+              '      y: 0,\n'
+              '    ),\n'
+              '    Point(\n'
+              '      x: 0,\n'
+              '      y: 20,\n'
+              '    ),\n'
+              '  ],\n'
+              ')'));
     });
 
     test('equals() method', () {
@@ -61,18 +73,9 @@ void main() {
         lastName: "",
       );
 
-      // Bug: The generated equals() method is broken because it compares
-      // List instances directly. In Dart, [1,2] == [1,2] is false.
-      // The equals method should use deep equality checking.
-      expect(fullName1.equals(fullName2), isFalse,
-          reason: "Bug: equals() is broken due to List comparison issue");
-      expect(fullName1.equals(fullName3), isFalse);
-      expect(fullName1.equals("not a FullName"), isFalse);
-
-      // Test what should work if == operator was properly implemented
-      // These will currently fail because == is not overridden
-      // expect(fullName1 == fullName2, isTrue);
-      // expect(fullName1 == fullName3, isFalse);
+      expect(fullName1 == fullName2, isTrue);
+      expect(fullName1 == fullName3, isFalse);
+      expect(fullName1 == "not a FullName", isFalse);
     });
 
     test('hashCode consistency', () {
@@ -82,13 +85,10 @@ void main() {
       names.add(full_name.FullName(firstName: "John", lastName: ""));
       names.add(
           full_name.FullName(firstName: "John", lastName: "Doe")); // duplicate
+      names
+          .add(full_name.FullName(firstName: "", lastName: "Doe")); // duplicate
 
-      // Bug: Because == operator is not overridden, Set will use identity equality
-      // instead of value equality, so duplicates won't be detected
-      // This should be 3 but will actually be 4
-      expect(names.length, equals(4),
-          reason:
-              "Bug: Set uses identity equality because == is not overridden");
+      expect(names.length, equals(3));
     });
 
     test('toMutable() functionality', () {
@@ -102,6 +102,13 @@ void main() {
       final frozen = mutableFullName.toFrozen();
       expect(frozen.firstName, equals("Jane"));
       expect(frozen.lastName, equals("Doe"));
+
+      expect(
+          (fullName.toMutable()..lastName = "Smith").toFrozen(),
+          equals(full_name.FullName(
+            firstName: "John",
+            lastName: "Smith",
+          )));
     });
 
     test('toFrozen() returns this for immutable objects', () {
@@ -109,12 +116,11 @@ void main() {
         firstName: "John",
         lastName: "Doe",
       );
-      expect(identical(fullName.toFrozen(), fullName), isTrue);
+      final full_name.FullName_orMutable fullNameOrMutable = fullName;
+      expect(identical(fullNameOrMutable.toFrozen(), fullName), isTrue);
     });
 
     test('mutable getters for complex types', () {
-      // Note: This tests complex mutable functionality that may not be fully implemented
-      // in the Dart generator yet
       final triangle = structs.Triangle(
         color: structs.Color(r: 127, g: 128, b: 139),
         points: [
@@ -125,104 +131,167 @@ void main() {
       );
       final mutableTriangle = triangle.toMutable();
 
-      // Test that the initial frozen state is preserved
-      expect(mutableTriangle.toFrozen().color.r, equals(127));
-      expect(mutableTriangle.toFrozen().color.g, equals(128));
-      expect(mutableTriangle.toFrozen().color.b, equals(139));
+      mutableTriangle.mutableColor.r = 27;
+      mutableTriangle.mutableColor.g = 28;
+      mutableTriangle.mutablePoints.add(structs.Point(x: 5, y: 5));
+      mutableTriangle.mutablePoints.add(structs.Point(x: 10, y: 10));
 
-      // Note: In Dart, the mutable collections behavior may differ from Kotlin
-      expect(mutableTriangle.toFrozen().points.length, equals(3));
+      expect(
+          mutableTriangle.toFrozen(),
+          equals(structs.Triangle(
+            color: structs.Color(r: 27, g: 28, b: 139),
+            points: [
+              structs.Point(x: 0, y: 0),
+              structs.Point(x: 10, y: 0),
+              structs.Point(x: 0, y: 20),
+              structs.Point(x: 5, y: 5),
+              structs.Point(x: 10, y: 10),
+            ],
+          )));
     });
 
     test('_OrMutable sealed interface', () {
-      final person = full_name.FullName(
+      final full_name.FullName_orMutable person1 = full_name.FullName(
         firstName: "John",
         lastName: "Doe",
       ) as full_name.FullName_orMutable;
-
-      final mutablePerson = full_name.FullName.mutable();
-      mutablePerson.firstName = "John";
-
-      expect(identical(person.toFrozen(), person), isTrue);
-      expect(mutablePerson.toFrozen().firstName, equals("John"));
+      final full_name.FullName_orMutable person2 = full_name.FullName.mutable()
+        ..firstName = "John"
+        ..lastName = "Doe";
+      expect(person1.toFrozen(), equals(person2.toFrozen()));
     });
 
-    test('default instances and static factory methods', () {
-      final defaultFullName = full_name.FullName.defaultInstance;
-      expect(defaultFullName.firstName, equals(""));
-      expect(defaultFullName.lastName, equals(""));
-
-      final mutableInstance = full_name.FullName.mutable();
-      expect(mutableInstance.firstName, equals(""));
-      expect(mutableInstance.lastName, equals(""));
+    test('default instances', () {
+      expect(full_name.FullName.defaultInstance,
+          equals(full_name.FullName.new(firstName: "", lastName: "")));
     });
 
     test('recursive structures', () {
-      // Test recursive structure handling
-      // Note: The exact behavior may depend on how recursive types are handled in Dart
-      final defaultInstance = structs.NameCollision_Foo.defaultInstance;
-      expect(defaultInstance, isNotNull);
-
-      // Test that recursive references work properly
-      final recursiveStruct = structs.NameCollision_Foo_Foo_Foo(
-        x: 42,
-        topLevelFoo: structs.NameCollision_Foo.defaultInstance,
+      final recA = structs.RecA(
+        a: structs.RecA(
+            a: structs.RecA.defaultInstance, b: structs.RecB.defaultInstance),
+        b: structs.RecB(a: structs.RecA.defaultInstance, aList: [
+          structs.RecA.defaultInstance,
+          structs.RecA.defaultInstance,
+        ]),
       );
-      expect(recursiveStruct.x, equals(42));
-      expect(recursiveStruct.topLevelFoo, isNotNull);
+      expect(
+          recA.toString(),
+          equals('RecA(\n'
+              '  a: RecA.defaultInstance,\n'
+              '  b: RecB(\n'
+              '    a: RecA.defaultInstance,\n'
+              '    aList: [\n'
+              '      RecA.defaultInstance,\n'
+              '      RecA.defaultInstance,\n'
+              '    ],\n'
+              '  ),\n'
+              ')'));
+      expect(
+          recA,
+          equals(structs.RecA(
+            a: structs.RecA(
+                a: structs.RecA.defaultInstance,
+                b: structs.RecB.defaultInstance),
+            b: structs.RecB(a: structs.RecA.defaultInstance, aList: [
+              structs.RecA.defaultInstance,
+              structs.RecA.defaultInstance,
+            ]),
+          )));
+      expect(recA.a.a.a.a.a.a.a, equals(structs.RecA.defaultInstance));
     });
 
     test('keyed lists functionality', () {
-      // Bug note: In Dart implementation, keyed iterables may not be fully compatible
-      // with the Kotlin mapView functionality
       final items = structs.Items(
         arrayWithBoolKey: [
-          structs.Item(
-            bool: true,
-            string: "a123",
-            int32: 123,
-            int64: 123,
-            user: structs.Item_User(id: "user123"),
-            weekday: enums.Weekday.monday,
-            bytes: soia.ByteString.empty,
-            timestamp: DateTime.fromMicrosecondsSinceEpoch(0, isUtc: true),
-          ),
+          structs.Item.mutable()
+            ..bool = true
+            ..string = "a"
         ],
         arrayWithStringKey: [],
         arrayWithInt32Key: [],
         arrayWithInt64Key: [
-          structs.Item(
-            bool: false,
-            string: "a123",
-            int32: 123,
-            int64: 123,
-            user: structs.Item_User(id: "user123"),
-            weekday: enums.Weekday.monday,
-            bytes: soia.ByteString.empty,
-            timestamp: DateTime.fromMicrosecondsSinceEpoch(0, isUtc: true),
-          ),
-          structs.Item(
-            bool: false,
-            string: "a234",
-            int32: 234,
-            int64: 234,
-            user: structs.Item_User(id: "user234"),
-            weekday: enums.Weekday.tuesday,
-            bytes: soia.ByteString.empty,
-            timestamp: DateTime.fromMicrosecondsSinceEpoch(0, isUtc: true),
-          ),
+          structs.Item.mutable()
+            ..int64 = 123
+            ..string = "a123",
+          structs.Item.mutable()
+            ..int64 = 234
+            ..string = "a234",
         ],
-        arrayWithWrapperKey: [],
-        arrayWithEnumKey: [],
+        arrayWithUserIdKey: [
+          structs.Item.mutable()
+            ..user = structs.Item_User(id: "user1")
+            ..string = "user item",
+        ],
+        arrayWithEnumKey: [
+          structs.Item.mutable()
+            ..weekday = enums.Weekday.tuesday
+            ..string = "monday item",
+        ],
         arrayWithBytesKey: [],
         arrayWithTimestampKey: [],
       );
 
       expect(items.arrayWithBoolKey.length, equals(1));
-      expect(items.arrayWithInt64Key.length, equals(2));
+      expect(
+          items.arrayWithBoolKey.findByKey(true),
+          (structs.Item.mutable()
+                ..bool = true
+                ..string = "a")
+              .toFrozen());
+      expect(
+          items.arrayWithInt64Key.findByKey(123),
+          (structs.Item.mutable()
+                ..int64 = 123
+                ..string = "a123")
+              .toFrozen());
+      expect(items.arrayWithInt64Key.findByKey(345), equals(null));
+      expect(items.arrayWithStringKey.findByKey("a"), equals(null));
+      expect(
+          items.arrayWithUserIdKey.findByKey("user1"),
+          (structs.Item.mutable()
+                ..user = structs.Item_User(id: "user1")
+                ..string = "user item")
+              .toFrozen());
+      expect(
+          items.arrayWithEnumKey.findByKey(enums.Weekday_kind.tuesdayConst),
+          (structs.Item.mutable()
+                ..weekday = enums.Weekday.tuesday
+                ..string = "monday item")
+              .toFrozen());
 
-      // Bug note: The mapView functionality from Kotlin may not be directly available
-      // in Dart implementation. This would need to be tested differently.
+      final copy = structs.Items(
+        arrayWithBoolKey: items.arrayWithBoolKey,
+        arrayWithStringKey: items.arrayWithStringKey,
+        arrayWithInt32Key: items.arrayWithInt32Key,
+        arrayWithInt64Key: items.arrayWithInt64Key,
+        arrayWithUserIdKey: items.arrayWithUserIdKey,
+        arrayWithEnumKey: items.arrayWithEnumKey,
+        arrayWithBytesKey: items.arrayWithBytesKey,
+        arrayWithTimestampKey: items.arrayWithTimestampKey,
+      );
+      expect(identical(copy.arrayWithBoolKey, items.arrayWithBoolKey), isTrue);
+    });
+
+    test('timestamp to UTC', () {
+      final now = DateTime.now();
+
+      final item = structs.Item(
+        bool: false,
+        string: "",
+        int32: 0,
+        int64: 0,
+        user: structs.Item_User(id: ""),
+        weekday: enums.Weekday.unknown,
+        bytes: soia.ByteString.empty,
+        timestamp: now, // This should be converted to UTC
+      );
+
+      // The stored timestamp should always be UTC
+      expect(item.timestamp.isUtc, isTrue,
+          reason: "Timestamps should be stored in UTC");
+      expect(item.timestamp.microsecondsSinceEpoch,
+          equals(now.microsecondsSinceEpoch));
     });
   });
 
@@ -232,27 +301,38 @@ void main() {
       expect(enums.Weekday.monday, isA<enums.Weekday>());
       expect(enums.Weekday.tuesday, isA<enums.Weekday>());
 
-      // Test enum with value fields if they exist
-      // Note: This may need to be adapted based on actual enum structure
+      expect(enums.JsonValue.null_, isA<enums.JsonValue>());
+      expect(enums.JsonValue.wrapBoolean(true), isA<enums.JsonValue>());
     });
 
     test('enum toString() formatting', () {
-      final mondayStr = enums.Weekday.monday.toString();
-      expect(mondayStr, contains("monday"));
-
-      final unknownStr = enums.Weekday.unknown.toString();
-      expect(unknownStr, contains("unknown"));
+      expect(
+          enums.Weekday.monday.toString(), equals('enums_soia:Weekday.monday'));
+      expect(enums.Weekday.unknown.toString(),
+          equals('enums_soia:Weekday.unknown'));
+      expect(
+          enums.JsonValue.wrapBoolean(true).toString(),
+          equals('enums_soia:JsonValue.wrapBoolean(\n'
+              '  true\n'
+              ')'));
     });
 
     test('enum equals() and hashCode', () {
-      final weekdays = <enums.Weekday>{};
-      weekdays.add(enums.Weekday.monday);
-      weekdays.add(enums.Weekday.monday); // duplicate
-      weekdays.add(enums.Weekday.unknown);
-      weekdays.add(enums.Weekday.unknown); // duplicate
-      weekdays.add(enums.Weekday.tuesday);
+      final set = <dynamic>{};
+      set.add(enums.Weekday.monday);
+      set.add(enums.Weekday.monday); // duplicate
+      set.add(enums.Weekday.unknown);
+      set.add(enums.Weekday.unknown); // duplicate
+      set.add(enums.Weekday.tuesday);
+      expect(set.length, equals(3));
 
-      expect(weekdays.length, equals(3));
+      set.add(enums.JsonValue.unknown);
+      expect(set.length, equals(4));
+
+      set.add(enums.JsonValue.wrapBoolean(true));
+      set.add(enums.JsonValue.wrapBoolean(true));
+      set.add(enums.JsonValue.wrapBoolean(false));
+      expect(set.length, equals(6));
     });
 
     test('enum kind property', () {
@@ -263,30 +343,28 @@ void main() {
     });
 
     test('enum switch pattern matching', () {
-      void testEnumSwitch(enums.Weekday weekday) {
-        // Use the actual enum instances for switching
-        if (weekday == enums.Weekday.unknown) {
-          // Handle unknown
-        } else if (weekday == enums.Weekday.monday) {
-          // Handle monday
-        } else if (weekday == enums.Weekday.tuesday) {
-          // Handle tuesday
-        } else if (weekday == enums.Weekday.wednesday) {
-          // Handle wednesday
-        } else if (weekday == enums.Weekday.thursday) {
-          // Handle thursday
-        } else if (weekday == enums.Weekday.friday) {
-          // Handle friday
-        } else if (weekday == enums.Weekday.saturday) {
-          // Handle saturday
-        } else if (weekday == enums.Weekday.sunday) {
-          // Handle sunday
+      dynamic getValue(enums.JsonValue jsonValue) {
+        switch (jsonValue) {
+          case enums.JsonValue.null_:
+            return null;
+          case enums.JsonValue_booleanWrapper(:final value):
+            return value;
+          case enums.JsonValue_numberWrapper(:final value):
+            return value;
+          case enums.JsonValue_stringWrapper(:final value):
+            return value;
+          case enums.JsonValue_arrayWrapper(:final value):
+            return value;
+          case enums.JsonValue_objectWrapper(:final value):
+            return value;
+          case enums.JsonValue_unknown():
+            return null;
         }
       }
 
-      // This should not throw any exceptions
-      testEnumSwitch(enums.Weekday.monday);
-      testEnumSwitch(enums.Weekday.unknown);
+      expect(getValue(enums.JsonValue.null_), equals(null));
+      expect(getValue(enums.JsonValue.unknown), equals(null));
+      expect(getValue(enums.JsonValue.wrapBoolean(true)), equals(true));
     });
   });
 
@@ -304,34 +382,56 @@ void main() {
       // Test JSON serialization
       final json = serializer.toJson(triangle);
       final deserialized = serializer.fromJson(json);
-      expect(deserialized.color.r, equals(triangle.color.r));
-      expect(deserialized.color.g, equals(triangle.color.g));
-      expect(deserialized.color.b, equals(triangle.color.b));
-      expect(deserialized.points.length, equals(1));
+      expect(deserialized, equals(triangle));
+
+      final readableJson = serializer.toJsonCode(triangle);
+      final deserializedFromReadableJson =
+          serializer.fromJsonCode(readableJson);
+      expect(deserializedFromReadableJson, equals(triangle));
 
       // Test binary serialization
       final bytes = serializer.toBytes(triangle);
       final deserializedFromBytes = serializer.fromBytes(bytes);
-      expect(deserializedFromBytes.color.r, equals(triangle.color.r));
+      expect(deserializedFromBytes, equals(triangle));
     });
 
-    test('enum serialization and deserialization', () {
+    test('enum constant serialization and deserialization', () {
       final weekday = enums.Weekday.monday;
       final serializer = enums.Weekday.serializer;
 
       final json = serializer.toJson(weekday);
       final deserialized = serializer.fromJson(json);
-      expect(deserialized.kind, equals(weekday.kind));
+      expect(deserialized, equals(weekday));
 
       final bytes = serializer.toBytes(weekday);
       final deserializedFromBytes = serializer.fromBytes(bytes);
-      expect(deserializedFromBytes.kind, equals(weekday.kind));
+      expect(deserializedFromBytes, equals(weekday));
+    });
 
-      // Test unknown enum
-      final unknown = enums.Weekday.unknown;
-      final unknownJson = serializer.toJson(unknown);
-      final unknownDeserialized = serializer.fromJson(unknownJson);
-      expect(unknownDeserialized.kind, equals(enums.Weekday_kind.unknown));
+    test('enum wrapper serialization and deserialization', () {
+      final original = enums.JsonValue.wrapString("Hello, World!");
+      final serializer = enums.JsonValue.serializer;
+
+      final json = serializer.toJson(original);
+      final deserialized = serializer.fromJson(json);
+      expect(deserialized, equals(original));
+
+      final bytes = serializer.toBytes(original);
+      final deserializedFromBytes = serializer.fromBytes(bytes);
+      expect(deserializedFromBytes, equals(original));
+    });
+
+    test('enum unknown serialization and deserialization', () {
+      final original = enums.JsonValue.unknown;
+      final serializer = enums.JsonValue.serializer;
+
+      final json = serializer.toJson(original);
+      final deserialized = serializer.fromJson(json);
+      expect(deserialized, equals(original));
+
+      final bytes = serializer.toBytes(original);
+      final deserializedFromBytes = serializer.fromBytes(bytes);
+      expect(deserializedFromBytes, equals(original));
     });
 
     test('schema change compatibility', () {
@@ -373,102 +473,6 @@ void main() {
       expect(customCar.model, equals("Tesla Model 3"));
       expect(customCar.owner, isNotNull);
       expect(customCar.secondOwner, isNull);
-    });
-  });
-
-  group('Potential bugs and limitations', () {
-    test('Bug: equals method may not be properly implemented', () {
-      // Bug note: The generated equals method in Dart has multiple issues:
-      // 1. It doesn't override the == operator (should be standard Dart practice)
-      // 2. The _equality_proxy returns a new List each time, making comparisons always false
-      final person1 = full_name.FullName(firstName: "John", lastName: "Doe");
-      final person2 = full_name.FullName(firstName: "John", lastName: "Doe");
-
-      // This fails because List comparison in Dart doesn't work as expected
-      expect(person1.equals(person2), isFalse,
-          reason: "Bug: equals() method is broken due to List comparison");
-
-      // And this doesn't work because == operator is not overridden
-      expect(person1 == person2, isFalse,
-          reason: "Bug: == operator should be overridden but isn't");
-
-      // This should be true if == was properly implemented:
-      // expect(person1 == person2, isTrue);
-    });
-
-    test('Bug: _equality_proxy creates new Lists causing equals to fail', () {
-      // This test demonstrates the core issue with the equals implementation
-
-      // The fundamental issue: in Dart, [1,2] == [1,2] is false
-      expect([1, 2] == [1, 2], isFalse,
-          reason: "Dart List instances are compared by identity, not content");
-
-      // This means the _equality_proxy approach is fundamentally flawed
-      // A proper implementation would need to use something like const lists
-      // or implement deep equality checking
-    });
-
-    test('Bug: mutable collections may not behave like Kotlin', () {
-      // Bug note: Dart's collection handling for mutable fields may differ
-      // from Kotlin's MutableList behavior
-      final triangle = structs.Triangle(
-        color: structs.Color(r: 1, g: 2, b: 3),
-        points: [structs.Point(x: 0, y: 0)],
-      );
-      final mutable = triangle.toMutable();
-
-      // In Kotlin, you can call mutablePoints.add() directly
-      // This may not work the same way in Dart
-      expect(mutable.points, isNotNull);
-    });
-
-    test('Bug: keyed list mapView may not be implemented', () {
-      // Bug note: The Kotlin implementation has mapView property on keyed lists
-      // This functionality may not be available in Dart
-      final items = structs.Items.defaultInstance;
-
-      // items.arrayWithInt64Key.mapView[123] - this may not exist in Dart
-      expect(items.arrayWithInt64Key, isNotNull);
-    });
-
-    test('Bug: recursive field handling may be incomplete', () {
-      // Bug note: Hard recursive references may not be properly handled
-      // with null checks in the Dart implementation
-      final recursive = structs.NameCollision_Foo_Foo_Foo.defaultInstance;
-      expect(recursive.topLevelFoo, isNotNull);
-
-      // The recursive reference should handle null properly but may not
-      expect(() => recursive.topLevelFoo.foo, returnsNormally);
-    });
-
-    test('Bug: enum value fields may not be implemented', () {
-      // Bug note: Complex enums with value fields (like Status.Error in Kotlin)
-      // may not be properly generated in Dart
-
-      // If Status enum with ErrorOption existed, this would test it:
-      // final errorStatus = enums.Status.createError(code: 100, message: "test");
-      // expect(errorStatus, isNotNull);
-    });
-
-    test('Bug: timestamp handling may have timezone issues', () {
-      // Bug note: Timestamp conversion between UTC and local time
-      // may not be consistent with Kotlin implementation
-      final now = DateTime.now();
-
-      final item = structs.Item(
-        bool: false,
-        string: "",
-        int32: 0,
-        int64: 0,
-        user: structs.Item_User(id: ""),
-        weekday: enums.Weekday.unknown,
-        bytes: soia.ByteString.empty,
-        timestamp: now, // This should be converted to UTC
-      );
-
-      // The stored timestamp should always be UTC
-      expect(item.timestamp.isUtc, isTrue,
-          reason: "Timestamps should be stored in UTC");
     });
   });
 }

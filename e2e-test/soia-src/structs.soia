@@ -44,7 +44,7 @@ struct Items {
   array_with_string_key: [Item|string];
   array_with_int32_key: [Item|int32];
   array_with_int64_key: [Item|int64];
-  array_with_wrapper_key: [Item|user.id];
+  array_with_user_id_key: [Item|user.id];
   array_with_enum_key: [Item|weekday.kind];
   array_with_bytes_key: [Item|bytes];
   array_with_timestamp_key: [Item|timestamp];
