@@ -1,4 +1,6 @@
 // TODO: unit tests
+//   - removed fields
+//   - methods
 // TODO: set up pre-commit hook
 // TODO: README
 
@@ -304,7 +306,7 @@ class DartSourceFileGenerator {
       const accessor = `this.${dartName}`;
       let bodyLines: string[] = [];
       if (type.kind === "array") {
-        const typeParameter = mutableType.substring(mutableType.indexOf('<'));
+        const typeParameter = mutableType.substring(mutableType.indexOf("<"));
         bodyLines = [
           `if (value is _soia.internal__MutableList${typeParameter}) {\n`,
           "  return value;\n",
@@ -398,7 +400,7 @@ class DartSourceFileGenerator {
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
     for (const constantField of constantFields) {
-      const dartName = enumFieldToDartName(constantField)
+      const dartName = enumFieldToDartName(constantField);
       this.push(
         "_serializerBuilder.addConstantField(\n",
         `${constantField.number},\n`,
@@ -523,11 +525,8 @@ class DartSourceFileGenerator {
   private writeMethod(method: Method): void {
     const { typeSpeller } = this;
     const methodName = method.name.text;
-    const soiaName = convertCase(
-      methodName,
-      "UpperCamel",
-      "lowerCamel",
-    ) + "Method";
+    const soiaName =
+      convertCase(methodName, "UpperCamel", "lowerCamel") + "Method";
     const requestType = typeSpeller.getDartType(method.requestType!, "frozen");
     const requestSerializerExpr = typeSpeller.getSerializerExpression(
       method.requestType!,

@@ -1,13 +1,15 @@
 enum EnumBefore {
   A;
   removed;
+  B;
 }
 
 enum EnumAfter {
   A;
   removed;
-  B;
+  removed;
   c: string;
+  D;
 }
 
 struct FooBefore {
@@ -29,7 +31,7 @@ struct BarBefore {
 }
 
 struct BarAfter {
-  x: float64;
+  x: float32;
   removed;
   removed;
   s: string;

@@ -1,11 +1,12 @@
 import 'package:test/test.dart';
-import '../soiagen/full_name.dart' as full_name;
-import '../soiagen/structs.dart' as structs;
-import '../soiagen/enums.dart' as enums;
 import '../soiagen/constants.dart' as constants;
-import '../soiagen/vehicles/car.dart' as vehicles_car;
+import '../soiagen/enums.dart' as enums;
+import '../soiagen/full_name.dart' as full_name;
+import '../soiagen/methods.dart' as methods;
 import '../soiagen/schema_change.dart' as schema_change;
+import '../soiagen/structs.dart' as structs;
 import '../soiagen/user.dart' as user;
+import '../soiagen/vehicles/car.dart' as vehicles_car;
 import 'package:soia/soia.dart' as soia;
 
 void main() {
@@ -434,14 +435,81 @@ void main() {
       expect(deserializedFromBytes, equals(original));
     });
 
-    test('schema change compatibility', () {
-      // Bug note: This test may not work properly if schema change handling
-      // is not fully implemented in Dart generator
+    test('unrecognized fields - JSON', () {
+      // Create a FooAfter instance with all fields including the new 'bit'
+      // field
+      final fooAfter = schema_change.FooAfter.mutable()
+        ..n = 42
+        ..bit = true;
+      fooAfter.mutableBars.addAll([
+        schema_change.BarAfter.mutable()
+          ..x = 1.0
+          ..s = 'bar1',
+        schema_change.BarAfter.mutable()
+          ..x = 2.0
+          ..s = 'bar2'
+      ]);
+      fooAfter.mutableEnums.addAll([
+        schema_change.EnumAfter.a,
+        schema_change.EnumAfter.wrapC("foo"),
+        schema_change.EnumAfter.d,
+      ]);
 
-      // This would test forward/backward compatibility between schema versions
-      // The exact test would depend on the schema_change module structure
-      expect(schema_change.FooAfter, isNotNull);
-      expect(schema_change.FooBefore, isNotNull);
+      // Serialize FooAfter to JSON
+      final jsonCode =
+          schema_change.FooAfter.serializer.toJsonCode(fooAfter.toFrozen());
+      expect(jsonCode,
+          equals('[[[1.0,0,0,"bar1"],[2.0,0,0,"bar2"]],42,[1,[4,"foo"],5],1]'));
+
+      // Deserialize as FooBefore with keepUnrecognizedFields to preserve the
+      // 'bit' field
+      expect(
+          schema_change.FooBefore.serializer.toJsonCode(schema_change
+              .FooBefore.serializer
+              .fromJsonCode(jsonCode, keepUnrecognizedFields: true)),
+          equals(jsonCode));
+
+      expect(
+          schema_change.FooBefore.serializer.toJsonCode(
+              schema_change.FooBefore.serializer.fromJsonCode(jsonCode)),
+          equals('[[[1.0],[2.0]],42,[1,0,0]]'));
+    });
+
+    test('unrecognized fields - binary', () {
+      // Create a FooAfter instance with all fields including the new 'bit'
+      // field
+      final fooAfter = schema_change.FooAfter.mutable()
+        ..n = 42
+        ..bit = true;
+      fooAfter.mutableBars.addAll([
+        schema_change.BarAfter.mutable()
+          ..x = 1.0
+          ..s = 'bar1',
+        schema_change.BarAfter.mutable()
+          ..x = 2.0
+          ..s = 'bar2'
+      ]);
+      fooAfter.mutableEnums.addAll([
+        schema_change.EnumAfter.a,
+        schema_change.EnumAfter.wrapC("foo"),
+        schema_change.EnumAfter.d,
+      ]);
+
+      // Serialize FooAfter to bytes
+      final bytes =
+          schema_change.FooAfter.serializer.toBytes(fooAfter.toFrozen());
+      expect(
+          soia.ByteString.copy(bytes).toBase16(),
+          equals(
+              '736f6961fa04f8fa04f00000803f0000f30462617231fa04f0000000400000f304626172322af901fef303666f6f0501'));
+
+      // Deserialize as FooBefore with keepUnrecognizedFields to preserve the
+      // 'bit' field
+      expect(
+          schema_change.FooBefore.serializer.toBytes(schema_change
+              .FooBefore.serializer
+              .fromBytes(bytes, keepUnrecognizedFields: true)),
+          equals(bytes));
     });
   });
 
@@ -455,6 +523,18 @@ void main() {
       // Test timestamp constant
       expect(constants.oneTimestamp, isA<DateTime>());
       expect(constants.oneTimestamp.isUtc, isTrue);
+    });
+  });
+
+  group('Methods tests', () {
+    test('generated methods', () {
+      expect(methods.myProcedureMethod, isA<soia.Method>());
+      expect(methods.myProcedureMethod.name, equals('MyProcedure'));
+      expect(methods.myProcedureMethod.number, equals(1974132327));
+      expect(methods.myProcedureMethod.requestSerializer,
+          equals(structs.Point.serializer));
+      expect(methods.myProcedureMethod.responseSerializer,
+          equals(enums.JsonValue.serializer));
     });
   });
 
