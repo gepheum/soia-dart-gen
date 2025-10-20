@@ -54,7 +54,7 @@ class DartSourceFileGenerator {
   constructor(
     private readonly inModule: Module,
     recordMap: ReadonlyMap<RecordKey, RecordLocation>,
-    config: Config,
+    _config: Config,
   ) {
     this.typeSpeller = new TypeSpeller(recordMap, inModule);
   }
@@ -566,7 +566,7 @@ class DartSourceFileGenerator {
         case "string":
           return JSON.stringify(constant.valueAsDenseJson);
         case "float32":
-        case "float64":
+        case "float64": {
           const number = constant.valueAsDenseJson as number;
           if (Number.isFinite(number)) {
             return JSON.stringify(number);
@@ -577,6 +577,7 @@ class DartSourceFileGenerator {
           } else {
             return "-double.infinity";
           }
+        }
         default:
           return undefined;
       }
@@ -626,7 +627,6 @@ class DartSourceFileGenerator {
         break;
       }
       case "array": {
-        const itemType = this.typeSpeller.getDartType(type.item, "frozen");
         return { expression: `_soia.KeyedIterable.empty`, isConst: true };
       }
       case "optional": {
