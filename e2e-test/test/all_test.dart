@@ -151,7 +151,7 @@ void main() {
           )));
     });
 
-    test('_OrMutable sealed interface', () {
+    test('_orMutable sealed interface', () {
       final full_name.FullName_orMutable person1 = full_name.FullName(
         firstName: "John",
         lastName: "Doe",
@@ -459,7 +459,7 @@ void main() {
       final jsonCode =
           schema_change.FooAfter.serializer.toJsonCode(fooAfter.toFrozen());
       expect(jsonCode,
-          equals('[[[1.0,0,0,"bar1"],[2.0,0,0,"bar2"]],42,[1,[4,"foo"],5],1]'));
+          equals('[[[1.0,0,0,"bar1"],[2.0,0,0,"bar2"]],42,[1,[5,"foo"],6],1]'));
 
       // Deserialize as FooBefore with keepUnrecognizedFields to preserve the
       // 'bit' field
@@ -501,7 +501,7 @@ void main() {
       expect(
           soia.ByteString.copy(bytes).toBase16(),
           equals(
-              '736f6961fa04f8fa04f00000803f0000f30462617231fa04f0000000400000f304626172322af901fef303666f6f0501'));
+              '736f6961fa04f8fa04f00000803f0000f30462617231fa04f0000000400000f304626172322af901f805f303666f6f0601'));
 
       // Deserialize as FooBefore with keepUnrecognizedFields to preserve the
       // 'bit' field
@@ -510,6 +510,51 @@ void main() {
               .FooBefore.serializer
               .fromBytes(bytes, keepUnrecognizedFields: true)),
           equals(bytes));
+    });
+
+    test('removed fields - JSON', () {
+      // Create a FooAfter instance with all fields including the new 'bit'
+      // field
+      final fooBefore = (schema_change.FooBefore.mutable()
+            ..bars = [schema_change.BarBefore.mutable()..y = true]
+            ..enums = [
+              schema_change.EnumBefore.b,
+              schema_change.EnumBefore.wrapC("foo"),
+            ])
+          .toFrozen();
+
+      // Serialize FooBefore to JSON
+      final jsonCode = schema_change.FooBefore.serializer.toJsonCode(fooBefore);
+      expect(jsonCode, equals('[[[0.0,0,1]],0,[3,[4,"foo"]]]'));
+
+      final fooAfter = schema_change.FooAfter.serializer
+          .fromJsonCode(jsonCode, keepUnrecognizedFields: true);
+
+      expect(schema_change.FooAfter.serializer.toJsonCode(fooAfter),
+          equals('[[[]],0,[0,0]]'));
+    });
+
+    test('removed fields - binary', () {
+      // Create a FooAfter instance with all fields including the new 'bit'
+      // field
+      final fooBefore = (schema_change.FooBefore.mutable()
+            ..bars = [schema_change.BarBefore.mutable()..y = true]
+            ..enums = [
+              schema_change.EnumBefore.b,
+              schema_change.EnumBefore.wrapC("foo"),
+            ])
+          .toFrozen();
+
+      // Serialize FooBefore to JSON
+      final bytes = schema_change.FooBefore.serializer.toBytes(fooBefore);
+      expect(soia.ByteString.copy(bytes).toBase16(),
+          equals('736f6961f9f7f900000100f803fef303666f6f'));
+
+      final fooAfter = schema_change.FooAfter.serializer
+          .fromBytes(bytes, keepUnrecognizedFields: true);
+
+      expect(schema_change.FooAfter.serializer.toBytes(fooAfter),
+          equals([115, 111, 105, 97, 249, 247, 246, 0, 248, 0, 0]));
     });
   });
 

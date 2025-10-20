@@ -1,9 +1,3 @@
-// TODO: unit tests
-//   - removed fields
-//   - methods
-// TODO: set up pre-commit hook
-// TODO: README
-
 import * as paths from "path";
 import {
   convertCase,
