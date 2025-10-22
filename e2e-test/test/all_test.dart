@@ -513,8 +513,6 @@ void main() {
     });
 
     test('removed fields - JSON', () {
-      // Create a FooAfter instance with all fields including the new 'bit'
-      // field
       final fooBefore = (schema_change.FooBefore.mutable()
             ..bars = [schema_change.BarBefore.mutable()..y = true]
             ..enums = [
@@ -545,7 +543,7 @@ void main() {
             ])
           .toFrozen();
 
-      // Serialize FooBefore to JSON
+      // Serialize FooBefore to bytes
       final bytes = schema_change.FooBefore.serializer.toBytes(fooBefore);
       expect(soia.ByteString.copy(bytes).toBase16(),
           equals('736f6961f9f7f900000100f803fef303666f6f'));
@@ -553,8 +551,11 @@ void main() {
       final fooAfter = schema_change.FooAfter.serializer
           .fromBytes(bytes, keepUnrecognizedFields: true);
 
-      expect(schema_change.FooAfter.serializer.toBytes(fooAfter),
-          equals([115, 111, 105, 97, 249, 247, 246, 0, 248, 0, 0]));
+      expect(
+          soia.ByteString.copy(
+                  schema_change.FooAfter.serializer.toBytes(fooAfter))
+              .toBase16(),
+          equals("736f6961f9f7f600f80000"));
     });
   });
 
