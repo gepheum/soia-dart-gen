@@ -554,9 +554,9 @@ class DartSourceFileGenerator {
       }
       switch (type.primitive) {
         case "bool":
+          return JSON.stringify(!!constant.valueAsDenseJson);
         case "int32":
         case "int64":
-        case "uint64":
         case "string":
           return JSON.stringify(constant.valueAsDenseJson);
         case "float32":
@@ -572,13 +572,15 @@ class DartSourceFileGenerator {
             return "-double.infinity";
           }
         }
-        default:
+        case "uint64":
+        case "bytes":
+        case "timestamp":
           return undefined;
       }
     };
     const dartConstLiteral = tryGetDartConstLiteral();
     if (dartConstLiteral !== undefined) {
-      this.push(`const ${dartType} ${name} = ${dartConstLiteral};`);
+      this.push(`const ${dartType} ${name} = ${dartConstLiteral};\n\n`);
     } else {
       const serializerExpression = typeSpeller.getSerializerExpression(
         constant.type!,

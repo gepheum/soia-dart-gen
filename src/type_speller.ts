@@ -140,8 +140,9 @@ export class TypeSpeller {
             return "_core.bool";
           case "int32":
           case "int64":
-          case "uint64":
             return "_core.int";
+          case "uint64":
+            return "_core.BigInt";
           case "float32":
           case "float64":
             return "_core.double";
