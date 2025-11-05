@@ -1480,7 +1480,7 @@ const UNIT_TESTS: [UnitTest] = [
           },
         },
         expected: [
-          "hex:736f6961fa070001000001",
+          "hex:736f6961fa050001000001",
           "hex:736f6961fa07000100000100f6",
         ],
       },

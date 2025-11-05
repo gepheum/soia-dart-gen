@@ -608,8 +608,9 @@ class DartSourceFileGenerator {
             return { expression: "false", isConst: true };
           case "int32":
           case "int64":
-          case "uint64":
             return { expression: "0", isConst: true };
+          case "uint64":
+            return { expression: "_core.BigInt.zero", isConst: false };
           case "float32":
           case "float64":
             return { expression: "0.0", isConst: true };
