@@ -1872,4 +1872,245 @@ const UNIT_TESTS: [UnitTest] = [
       },
     },
   },
+  {
+    test_number: 1071,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "uint64",
+          value: 231,
+        },
+        expected_dense_json: [
+          "231",
+        ],
+        expected_readable_json: [
+          "231",
+        ],
+        expected_bytes: [
+          "hex:736f6961e7",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1072,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "uint64",
+          value: 232,
+        },
+        expected_dense_json: [
+          "232",
+        ],
+        expected_readable_json: [
+          "232",
+        ],
+        expected_bytes: [
+          "hex:736f6961e8e800",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1073,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 231,
+        },
+        expected_dense_json: [
+          "231",
+        ],
+        expected_readable_json: [
+          "231",
+        ],
+        expected_bytes: [
+          "hex:736f6961e7",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1074,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 232,
+        },
+        expected_dense_json: [
+          "232",
+        ],
+        expected_readable_json: [
+          "232",
+        ],
+        expected_bytes: [
+          "hex:736f6961e8e800",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1075,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "ints",
+          value: [
+            1,
+          ],
+        },
+        expected_dense_json: [
+          "[1]",
+        ],
+        expected_readable_json: [
+          "[\n  1\n]",
+        ],
+        expected_bytes: [
+          "hex:736f6961f701",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1076,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "ints",
+          value: [
+            1,
+            2,
+          ],
+        },
+        expected_dense_json: [
+          "[1,2]",
+        ],
+        expected_readable_json: [
+          "[\n  1,\n  2\n]",
+        ],
+        expected_bytes: [
+          "hex:736f6961f80102",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1077,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "ints",
+          value: [
+            1,
+            2,
+            3,
+            4,
+          ],
+        },
+        expected_dense_json: [
+          "[1,2,3,4]",
+        ],
+        expected_readable_json: [
+          "[\n  1,\n  2,\n  3,\n  4\n]",
+        ],
+        expected_bytes: [
+          "hex:736f6961fa0401020304",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1078,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 4294967295,
+        },
+        expected_dense_json: [
+          "4294967295",
+        ],
+        expected_readable_json: [
+          "4294967295",
+        ],
+        expected_bytes: [
+          "hex:736f6961eeffffffff00000000",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1079,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: 4294967296,
+        },
+        expected_dense_json: [
+          "4294967296",
+        ],
+        expected_readable_json: [
+          "4294967296",
+        ],
+        expected_bytes: [
+          "hex:736f6961ee0000000001000000",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1080,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: -2147483648,
+        },
+        expected_dense_json: [
+          "-2147483648",
+        ],
+        expected_readable_json: [
+          "-2147483648",
+        ],
+        expected_bytes: [
+          "hex:736f6961ed00000080",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1081,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "int64",
+          value: -2147483649,
+        },
+        expected_dense_json: [
+          "-2147483649",
+        ],
+        expected_readable_json: [
+          "-2147483649",
+        ],
+        expected_bytes: [
+          "hex:736f6961eeffffff7fffffffff",
+        ],
+      |},
+    },
+  },
 ];
