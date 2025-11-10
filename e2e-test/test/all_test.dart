@@ -569,6 +569,10 @@ void main() {
       // Test timestamp constant
       expect(constants.oneTimestamp, isA<DateTime>());
       expect(constants.oneTimestamp.isUtc, isTrue);
+
+      expect(constants.infinity, equals(double.infinity));
+      expect(constants.minusInfinity, equals(-double.infinity));
+      expect(constants.nan, isNot(equals(constants.nan)));
     });
   });
 

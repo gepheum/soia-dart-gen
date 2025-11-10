@@ -34,3 +34,8 @@ const ONE_TIMESTAMP: timestamp = "2023-12-31T00:53:48+00:00";
 const ONE_SINGLE_QUOTED_STRING: string = '"Foo"';
 
 const FOO_METHOD: bool = true;
+
+const INFINITY: float32 = "Infinity";
+const MINUS_INFINITY: float32 = "-Infinity";
+const NAN: float64 = "NaN";
+

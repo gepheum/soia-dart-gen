@@ -148,10 +148,6 @@ const UNIT_TESTS: [UnitTest] = [
           },
           {
             kind: "literal",
-            value: '"-Infinity"',
-          },
-          {
-            kind: "literal",
             value: '"1"',
           },
         ],
@@ -2046,6 +2042,7 @@ const UNIT_TESTS: [UnitTest] = [
         ],
         expected_bytes: [
           "hex:736f6961eeffffffff00000000",
+          "hex:736f6961e9ffffffff",
         ],
       |},
     },
@@ -2109,6 +2106,48 @@ const UNIT_TESTS: [UnitTest] = [
         ],
         expected_bytes: [
           "hex:736f6961eeffffff7fffffffff",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1082,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "float32",
+          value: "Infinity",
+        },
+        expected_dense_json: [
+          '"Infinity"',
+        ],
+        expected_readable_json: [
+          '"Infinity"',
+        ],
+        expected_bytes: [
+          "hex:736f6961f00000807f",
+        ],
+      |},
+    },
+  },
+  {
+    test_number: 1083,
+    assertion: {
+      kind: "reserialize_value",
+      value: {|
+        value: {
+          kind: "float64",
+          value: "-Infinity",
+        },
+        expected_dense_json: [
+          '"-Infinity"',
+        ],
+        expected_readable_json: [
+          '"-Infinity"',
+        ],
+        expected_bytes: [
+          "hex:736f6961f1000000000000f0ff",
         ],
       |},
     },

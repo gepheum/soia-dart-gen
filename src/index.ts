@@ -561,15 +561,15 @@ class DartSourceFileGenerator {
           return JSON.stringify(constant.valueAsDenseJson);
         case "float32":
         case "float64": {
-          const number = constant.valueAsDenseJson as number;
+          const number = Number(constant.valueAsDenseJson as number | string);
           if (Number.isFinite(number)) {
             return JSON.stringify(number);
           } else if (Number.isNaN(number)) {
-            return "double.nan";
+            return "_core.double.nan";
           } else if (number > 0) {
-            return "double.infinity";
+            return "_core.double.infinity";
           } else {
-            return "-double.infinity";
+            return "-_core.double.infinity";
           }
         }
         case "uint64":

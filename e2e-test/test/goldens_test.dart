@@ -222,6 +222,32 @@ void reserializeValueAndVerify(Assertion_ReserializeValue input) {
       rethrow;
     }
   }
+  for (final json in List.of(input.expectedDenseJson) +
+      List.of(input.expectedReadableJson)) {
+    try {
+      final roundTripJson = toDenseJson(
+        typedValue.serializer,
+        fromJsonKeepUnrecognized(
+          typedValue.serializer,
+          json,
+        ),
+      );
+      // Check if roundTripJson matches any of the expected values
+      verifyAssertion(
+        Assertion.createStringIn(
+          actual: StringExpression.wrapLiteral(roundTripJson),
+          expected: input.expectedDenseJson,
+        ),
+      );
+    } catch (e) {
+      if (e is AssertionError) {
+        e.addContext(
+          "while processing alternative JSON: ${json}",
+        );
+      }
+      rethrow;
+    }
+  }
 
   for (final alternativeBytes in input.alternativeBytes) {
     try {
@@ -243,6 +269,31 @@ void reserializeValueAndVerify(Assertion_ReserializeValue input) {
       if (e is AssertionError) {
         e.addContext(
           "while processing alternative bytes: ${evaluateBytes(alternativeBytes).toBase16()}",
+        );
+      }
+      rethrow;
+    }
+  }
+  for (final bytes in input.expectedBytes) {
+    try {
+      final roundTripBytes = toBytes(
+        typedValue.serializer,
+        fromBytesDropUnrecognizedFields(
+          typedValue.serializer,
+          bytes,
+        ),
+      );
+      // Check if roundTripBytes matches any of the expected values
+      verifyAssertion(
+        Assertion.createBytesIn(
+          actual: BytesExpression.wrapLiteral(roundTripBytes),
+          expected: input.expectedBytes,
+        ),
+      );
+    } catch (e) {
+      if (e is AssertionError) {
+        e.addContext(
+          "while processing alternative bytes: ${bytes.toBase16()}",
         );
       }
       rethrow;
