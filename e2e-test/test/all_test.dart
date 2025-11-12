@@ -573,6 +573,8 @@ void main() {
       expect(constants.infinity, equals(double.infinity));
       expect(constants.minusInfinity, equals(-double.infinity));
       expect(constants.nan, isNot(equals(constants.nan)));
+
+      expect(constants.largeInt64, equals(9223372036854775807));
     });
   });
 

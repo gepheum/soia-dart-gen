@@ -39,3 +39,8 @@ const INFINITY: float32 = "Infinity";
 const MINUS_INFINITY: float32 = "-Infinity";
 const NAN: float64 = "NaN";
 
+const LARGE_INT64: int64 = 9223372036854775807;
+
+const B: bool = false;
+
+const PI: float64 = 3.141592653589793;

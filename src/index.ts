@@ -552,24 +552,25 @@ class DartSourceFileGenerator {
       if (type.kind !== "primitive") {
         return undefined;
       }
+      const { valueAsDenseJson } = constant;
       switch (type.primitive) {
         case "bool":
-          return JSON.stringify(!!constant.valueAsDenseJson);
+          return JSON.stringify(!!valueAsDenseJson);
         case "int32":
-        case "int64":
         case "string":
-          return JSON.stringify(constant.valueAsDenseJson);
+          return JSON.stringify(valueAsDenseJson);
+        case "int64":
+          return valueAsDenseJson!.toString();
         case "float32":
         case "float64": {
-          const number = Number(constant.valueAsDenseJson as number | string);
-          if (Number.isFinite(number)) {
-            return JSON.stringify(number);
-          } else if (Number.isNaN(number)) {
+          if (valueAsDenseJson === "NaN") {
             return "_core.double.nan";
-          } else if (number > 0) {
+          } else if (valueAsDenseJson === "Infinity") {
             return "_core.double.infinity";
-          } else {
+          } else if (valueAsDenseJson === "-Infinity") {
             return "-_core.double.infinity";
+          } else {
+            return JSON.stringify(valueAsDenseJson);
           }
         }
         case "uint64":
