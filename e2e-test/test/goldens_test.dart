@@ -308,6 +308,14 @@ void reserializeValueAndVerify(Assertion_ReserializeValue input) {
         expected: StringExpression.wrapLiteral(input.expectedTypeDescriptor!),
       ),
     );
+    verifyAssertion(
+      Assertion.createStringEqual(
+        actual: StringExpression.wrapLiteral(
+          soia.TypeDescriptor.parseFromJsonCode(actual).asJsonCode,
+        ),
+        expected: StringExpression.wrapLiteral(input.expectedTypeDescriptor!),
+      ),
+    );
   }
 }
 
@@ -514,6 +522,11 @@ TypedValueType<dynamic> evaluateTypedValue(TypedValue literal) {
       return TypedValueType(
         (literal as TypedValue_myEnumWrapper).value,
         MyEnum.serializer,
+      );
+    case TypedValue_kind.keyedArraysWrapper:
+      return TypedValueType(
+        (literal as TypedValue_keyedArraysWrapper).value,
+        KeyedArrays.serializer,
       );
     case TypedValue_kind.roundTripDenseJsonWrapper:
       {

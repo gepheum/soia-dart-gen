@@ -195,7 +195,7 @@
     },
     {
       "name": "soia",
-      "rootUri": "file:///Users/clementroux/.pub-cache/hosted/pub.dev/soia-0.1.25",
+      "rootUri": "file:///Users/clementroux/.pub-cache/hosted/pub.dev/soia-0.1.27",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
@@ -314,7 +314,7 @@
       "languageVersion": "3.5"
     }
   ],
-  "generated": "2025-11-05T22:50:49.993049Z",
+  "generated": "2025-11-14T22:15:33.996231Z",
   "generator": "pub",
   "generatorVersion": "3.5.0",
   "pubCache": "file:///Users/clementroux/.pub-cache"
