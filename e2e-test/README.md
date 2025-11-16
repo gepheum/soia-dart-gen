@@ -74,7 +74,7 @@ person1.equals(person2); // Returns false (should be true)
 
 ### Missing Features
 - Keyed list `mapView` functionality from Kotlin may not be implemented
-- Complex enums with value fields may not be supported
+- Complex enums with wrapper fields may not be supported
 - Recursive field handling may be incomplete
 
 ## Running the Tests

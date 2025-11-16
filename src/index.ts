@@ -338,7 +338,7 @@ class DartSourceFileGenerator {
     const { typeSpeller } = this;
     const { fields } = record.record;
     const constantFields = fields.filter((f) => !f.type);
-    const valueFields = fields.filter((f) => f.type);
+    const wrapperFields = fields.filter((f) => f.type);
     const className = typeSpeller.getClassName(record);
     // The actual enum class
     this.push(
@@ -355,7 +355,7 @@ class DartSourceFileGenerator {
       );
     }
     this.pushEol();
-    for (const field of valueFields) {
+    for (const field of wrapperFields) {
       const type = field.type!;
       const dartType = typeSpeller.getDartType(type, "frozen");
       this.push(
@@ -404,18 +404,18 @@ class DartSourceFileGenerator {
         ");\n",
       );
     }
-    for (const valueField of valueFields) {
-      const type = valueField.type!;
+    for (const wrapperField of wrapperFields) {
+      const type = wrapperField.type!;
       const serializerExpr = typeSpeller.getSerializerExpression(type);
       this.push(
-        "_serializerBuilder.addValueField(\n",
-        `${valueField.number},\n`,
-        `"${valueField.name.text}",\n`,
-        `"wrap${toUpperCamel(valueField)}",\n`,
+        "_serializerBuilder.addWrapperField(\n",
+        `${wrapperField.number},\n`,
+        `"${wrapperField.name.text}",\n`,
+        `"wrap${toUpperCamel(wrapperField)}",\n`,
         `${serializerExpr},\n`,
-        `${className}_${toLowerCamel(valueField)}Wrapper._,\n`,
+        `${className}_${toLowerCamel(wrapperField)}Wrapper._,\n`,
         "(it) => it.value,\n",
-        `ordinal: ${className}_kind.${toLowerCamel(valueField)}Wrapper._ordinal,\n`,
+        `ordinal: ${className}_kind.${toLowerCamel(wrapperField)}Wrapper._ordinal,\n`,
         ");\n",
       );
     }
@@ -447,7 +447,7 @@ class DartSourceFileGenerator {
       const ordinal = ordinalCounter++;
       this.push(`${toLowerCamel(field)}Const(${ordinal}),\n`);
     }
-    for (const field of valueFields) {
+    for (const field of wrapperFields) {
       const ordinal = ordinalCounter++;
       this.push(`${toLowerCamel(field)}Wrapper(${ordinal}),\n`);
     }
@@ -487,7 +487,7 @@ class DartSourceFileGenerator {
       );
       this.push("}\n\n"); // enum _consts
     }
-    if (valueFields.length) {
+    if (wrapperFields.length) {
       // The _wrapper abstract class
       this.push(
         `sealed class _${className}_wrapper implements ${className} {\n`,
@@ -502,7 +502,7 @@ class DartSourceFileGenerator {
         `${className}.serializer);\n`,
         "}\n\n",
       );
-      for (const field of valueFields) {
+      for (const field of wrapperFields) {
         const dartType = typeSpeller.getDartType(field.type!, "frozen");
         this.push(
           `final class ${className}_${toLowerCamel(field)}Wrapper `,
