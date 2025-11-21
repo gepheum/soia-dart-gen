@@ -528,6 +528,16 @@ TypedValueType<dynamic> evaluateTypedValue(TypedValue literal) {
         (literal as TypedValue_keyedArraysWrapper).value,
         KeyedArrays.serializer,
       );
+    case TypedValue_kind.recStructWrapper:
+      return TypedValueType(
+        (literal as TypedValue_recStructWrapper).value,
+        RecStruct.serializer,
+      );
+    case TypedValue_kind.recEnumWrapper:
+      return TypedValueType(
+        (literal as TypedValue_recEnumWrapper).value,
+        RecEnum.serializer,
+      );
     case TypedValue_kind.roundTripDenseJsonWrapper:
       {
         final other = evaluateTypedValue(
