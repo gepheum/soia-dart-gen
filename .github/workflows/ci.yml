@@ -20,9 +20,9 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
       - name: Set up Dart ${{ matrix.dart-sdk }}
-        uses: actions/setup-python@v5
+        uses: dart-lang/setup-dart@v1
         with:
-          python-version: ${{ matrix.dart-sdk }}
+          sdk: ${{ matrix.dart-sdk }}
       - run: npm ci
       - run: npm run build
       - run: npm run test
