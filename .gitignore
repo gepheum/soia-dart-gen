@@ -1,5 +1,6 @@
 .dart_tool
 dist
 node_modules
+package_config.json
 soiagen
 tsconfig.tsbuildinfo
