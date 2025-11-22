@@ -28,7 +28,7 @@
     "format-dart:check": "cd e2e-test && dart format --output=none --set-exit-if-changed . && cd ..",
     "format": "prettier --write \"**/*.ts\" && npm run format-soia && npm run format-dart",
     "format:check": "prettier --check \"**/*.ts\" && npm run format-soia:check && npm run format-dart:check",
-    "test": "npm run build && cd e2e-test && soiac -r . && dart analyze --fatal-infos && dart test && cd ..",
+    "test": "npm run build && cd e2e-test && soiac -r . && dart pub get && dart analyze --fatal-infos && dart test && cd ..",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
   },
