@@ -76,10 +76,10 @@ final User jane = (User.mutable()
       ..userId = 43
       ..name = "Jane Doe"
       ..pets = [
-        User_Pet(name: "Fluffy", heightInMeters: 0.02, picture: "🐱"),
+        User_Pet(name: "Fluffy", heightInMeters: 0.2, picture: "🐱"),
         User_Pet.mutable()
           ..name = "Fido"
-          ..heightInMeters = 0.025
+          ..heightInMeters = 0.25
           ..picture = "🐶"
           ..toFrozen(),
       ])
@@ -119,11 +119,11 @@ userHistory.mutableUser.quote = "I am Lyla.";
 // It returns the existing list if already mutable, or creates and returns a
 // mutable shallow copy.
 mutableLyla.mutablePets.add(User_Pet(
-  name: "Cupcake",
-  heightInMeters: 0.0,
-  picture: "",
+  name: "Simba",
+  heightInMeters: 0.4,
+  picture: "🦁",
 ));
-mutableLyla.mutablePets.add(User_Pet.mutable()..name = "Simba");
+mutableLyla.mutablePets.add(User_Pet.mutable()..name = "Cupcake");
 ```
 
 #### Converting between frozen and mutable
@@ -143,8 +143,8 @@ assert(evilJane.userId == 43);
 #### Writing logic agnostic of mutability
 
 ```dart
-// 'User_orMutable' is a type alias for the sealed class that both User and
-// User_mutable implement.
+// 'User_orMutable' is a type alias for the sealed class that both 'User' and
+// 'User_mutable' implement.
 void greet(User_orMutable user) {
   print("Hello, ${user.name}");
 }
@@ -274,8 +274,8 @@ assert(reserializedLyla.name == "Lyla Doe");
 
 ```dart
 final pets = [
-  User_Pet(name: "Fluffy", heightInMeters: 0.0, picture: ""),
-  User_Pet(name: "Fido", heightInMeters: 0.0, picture: ""),
+    User_Pet(name: "Fluffy", heightInMeters: 0.25, picture: "🐶"),
+    User_Pet(name: "Fido", heightInMeters: 0.5, picture: "🐻"),
 ];
 
 final jade = User(
