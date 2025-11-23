@@ -36,7 +36,7 @@ import 'package:soia_dart_example/soiagen/user.dart';
 
 ### Struct classes
 
-For every struct `S` in the .soia file, soia generates a frozen/deeply immutable class `S` and a mutable class `S_mutable`.
+For every struct `S` in the .soia file, soia generates a frozen (deeply immutable) class `S` and a mutable class `S_mutable`.
 
 #### Frozen struct classes
 
