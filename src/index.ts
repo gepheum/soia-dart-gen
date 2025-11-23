@@ -389,7 +389,6 @@ class DartSourceFileGenerator {
     }
     this.push(`\n${className}_kind get kind;\n`);
     this.push(
-      "_core.bool get isUnknown;\n\n",
       `static _soia.EnumSerializer<${className}> get serializer {\n`,
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
@@ -465,7 +464,8 @@ class DartSourceFileGenerator {
       `const ${className}_unknown._() : _u = null;\n`,
       `${className}_unknown._unrecognized(this._u);\n\n`,
       `${className}_kind get kind => ${className}_kind.unknown;\n`,
-      "_core.bool get isUnknown => true;\n\n",
+      `_core.bool operator ==(other) => other is ${className}_unknown;\n`,
+      "_core.int get hashCode => 8118964;\n",
       "_core.String toString() => _soia.internal__stringify(this, ",
       `${className}.serializer);\n`,
       "}\n\n",
@@ -481,7 +481,6 @@ class DartSourceFileGenerator {
       this.push(
         `final ${className}_kind kind;\n\n`,
         `const _${className}_consts(this.kind);\n\n`,
-        "_core.bool get isUnknown => false;\n\n",
         "_core.String toString() => _soia.internal__stringify(this, ",
         `${className}.serializer);\n`,
       );
@@ -491,7 +490,6 @@ class DartSourceFileGenerator {
       // The _wrapper abstract class
       this.push(
         `sealed class _${className}_wrapper implements ${className} {\n`,
-        "_core.bool get isUnknown => false;\n",
         "_core.dynamic get value;\n\n",
         "_core.bool operator ==(other) {\n",
         `if (other is! _${className}_wrapper) return false;\n`,
