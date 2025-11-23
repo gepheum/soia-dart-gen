@@ -328,6 +328,8 @@ void main() {
       expect(set.length, equals(3));
 
       set.add(enums.JsonValue.unknown);
+      set.add(enums.JsonValue.serializer.fromJsonCode("888"));
+      set.add(enums.JsonValue.serializer.fromJsonCode("999"));
       expect(set.length, equals(4));
 
       set.add(enums.JsonValue.wrapBoolean(true));
