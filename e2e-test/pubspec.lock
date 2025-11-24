@@ -261,10 +261,10 @@ packages:
     dependency: "direct main"
     description:
       name: soia
-      sha256: "455f440f3216fee07933686099faa7695d3fccf9bcc52e790785ea00a004f85c"
+      sha256: fef82a473fbd95c5ef2bfa022fb0a2df01cb1793077bdb5156d3654d1127990b
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.1"
+    version: "0.2.2"
   source_map_stack_trace:
     dependency: transitive
     description:
