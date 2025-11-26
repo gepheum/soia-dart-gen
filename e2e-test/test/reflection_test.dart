@@ -113,7 +113,7 @@ class _ClearDebugVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
       soia.ReflectiveOptionalDescriptor<NotNull> descriptor,
       soia.TypeEquivalence<T, NotNull?> equivalence) {
     result = equivalence.toT(
-      descriptor.applyTransformer(
+      descriptor.map(
         equivalence.fromT(input),
         const _ClearDebugTransformer(),
       ),
@@ -125,7 +125,7 @@ class _ClearDebugVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
       soia.ReflectiveArrayDescriptor<E, Collection> descriptor,
       soia.TypeEquivalence<T, Collection> equivalence) {
     result = equivalence.toT(
-      descriptor.applyTransformer(
+      descriptor.map(
         equivalence.fromT(input),
         const _ClearDebugTransformer(),
       ),
@@ -150,7 +150,7 @@ class _ClearDebugVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
 
   @override
   void visitEnum(soia.ReflectiveEnumDescriptor<T> descriptor) {
-    result = descriptor.applyTransformer(
+    result = descriptor.mapValue(
       input,
       const _ClearDebugTransformer(),
     );
@@ -187,7 +187,7 @@ class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
       soia.ReflectiveOptionalDescriptor<NotNull> descriptor,
       soia.TypeEquivalence<T, NotNull?> equivalence) {
     result = equivalence.toT(
-      descriptor.applyTransformer(
+      descriptor.map(
         equivalence.fromT(input),
         const _UpperCasifyTransformer(),
       ),
@@ -199,7 +199,7 @@ class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
       soia.ReflectiveArrayDescriptor<E, Collection> descriptor,
       soia.TypeEquivalence<T, Collection> equivalence) {
     result = equivalence.toT(
-      descriptor.applyTransformer(
+      descriptor.map(
         equivalence.fromT(input),
         const _UpperCasifyTransformer(),
       ),
@@ -209,7 +209,7 @@ class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
   @override
   void visitStruct<Mutable>(
       soia.ReflectiveStructDescriptor<T, Mutable> descriptor) {
-    result = descriptor.applyTransformer(
+    result = descriptor.mapFields(
       input,
       const _UpperCasifyTransformer(),
     );
@@ -217,7 +217,7 @@ class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
 
   @override
   void visitEnum(soia.ReflectiveEnumDescriptor<T> descriptor) {
-    result = descriptor.applyTransformer(
+    result = descriptor.mapValue(
       input,
       const _UpperCasifyTransformer(),
     );

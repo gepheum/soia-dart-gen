@@ -374,4 +374,30 @@ final typeDescriptor = soia.TypeDescriptor.parseFromJson(
   User.serializer.typeDescriptor.asJson,
 );
 print("Type descriptor deserialized successfully");
+
+// The 'allStringsToUpperCase' function uses reflection to convert all the
+// strings contained in a given Soia value to upper case.
+// See the implementation at
+// https://github.com/gepheum/soia-dart-example/blob/main/lib/all_strings_to_upper_case.dart
+print(allStringsToUpperCase<User>(tarzan, User.serializer.typeDescriptor));
+// User(
+//   userId: 123,
+//   name: "TARZAN",
+//   quote: "AAAAAAAAAAYAAAAAAAAAAYAAAAAAAAAA",
+//   pets: [
+//     User_Pet(
+//       name: "CHEETA",
+//       heightInMeters: 1.67,
+//       picture: "🐒",
+//     ),
+//   ],
+//   subscriptionStatus: User_SubscriptionStatus.wrapTrial(
+//     User_Trial(
+//       startTime: DateTime.fromMillisecondsSinceEpoch(
+//         // 2025-04-02T11:13:29.000Z
+//         1743592409000
+//       ),
+//     )
+//   ),
+// )
 ```
