@@ -307,13 +307,11 @@ void main() {
     });
 
     test('enum toString() formatting', () {
-      expect(
-          enums.Weekday.monday.toString(), equals('enums_soia:Weekday.monday'));
-      expect(enums.Weekday.unknown.toString(),
-          equals('enums_soia:Weekday.unknown'));
+      expect(enums.Weekday.monday.toString(), equals('Weekday.monday'));
+      expect(enums.Weekday.unknown.toString(), equals('Weekday.unknown'));
       expect(
           enums.JsonValue.wrapBoolean(true).toString(),
-          equals('enums_soia:JsonValue.wrapBoolean(\n'
+          equals('JsonValue.wrapBoolean(\n'
               '  true\n'
               ')'));
     });
@@ -607,6 +605,37 @@ void main() {
       expect(customCar.model, equals("Tesla Model 3"));
       expect(customCar.owner, isNotNull);
       expect(customCar.secondOwner, isNull);
+    });
+  });
+
+  group('type descriptors', () {
+    test('default value', () {
+      expect(soia.Serializers.bool.typeDescriptor.defaultValue, equals(false));
+      expect(soia.Serializers.int32.typeDescriptor.defaultValue, equals(0));
+      expect(soia.Serializers.int64.typeDescriptor.defaultValue, equals(0));
+      expect(
+        soia.Serializers.uint64.typeDescriptor.defaultValue,
+        equals(BigInt.zero),
+      );
+      expect(soia.Serializers.float32.typeDescriptor.defaultValue, equals(0.0));
+      expect(soia.Serializers.float64.typeDescriptor.defaultValue, equals(0.0));
+      expect(
+        soia.Serializers.timestamp.typeDescriptor.defaultValue,
+        equals(soia.unixEpoch),
+      );
+      expect(soia.Serializers.string.typeDescriptor.defaultValue, equals(""));
+      expect(
+        soia.Serializers.bytes.typeDescriptor.defaultValue,
+        equals(soia.ByteString.empty),
+      );
+      expect(
+        vehicles_car.Car.serializer.typeDescriptor.defaultValue,
+        vehicles_car.Car.defaultInstance,
+      );
+      expect(
+        enums.Weekday.serializer.typeDescriptor.defaultValue,
+        enums.Weekday.unknown,
+      );
     });
   });
 }
