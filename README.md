@@ -19,6 +19,12 @@ In your `soia.yml` file, add the following snippet under `generators`:
 
 The `npm run soiac` command will now generate .dart files within the `soiagen` directory.
 
+The generated Dart code has a runtime dependency on the `soia` library. Add this line to your `pubspec.yaml` file under `dependencies`:
+
+```yaml
+  soia: ^0.3.0  # Use the latest version
+```
+
 For more information, see this Dart project [example](https://github.com/gepheum/soia-dart-example).
 
 ## Dart generated code guide
