@@ -1,4 +1,9 @@
-import type { Module, RecordKey, RecordLocation, ResolvedType } from "soiac";
+import type {
+  Module,
+  RecordKey,
+  RecordLocation,
+  ResolvedType,
+} from "skir-internal";
 import { getClassName, structFieldToDartName } from "./naming.js";
 
 export type TypeFlavor =
@@ -9,7 +14,7 @@ export type TypeFlavor =
   | "kind";
 
 /**
- * Transforms a type found in a `.soia` file into a Dart type.
+ * Transforms a type found in a `.skir` file into a Dart type.
  *
  * The flavors are:
  *   · initializer
@@ -21,7 +26,7 @@ export type TypeFlavor =
  *       Type union of the frozen type and the mutable type. All the fields of a
  *       mutable class are maybe-mutable.
  *   · mutable:
- *       A mutable value. Not all types found in `.soia` files support this, e.g.
+ *       A mutable value. Not all types found in `.skir` files support this, e.g.
  *       strings and numbers are always immutable.
  */
 export class TypeSpeller {
@@ -102,7 +107,7 @@ export class TypeSpeller {
             if (keyType.kind === "record") {
               dartKeyType += "_kind";
             }
-            return `_soia.KeyedIterable<${itemType}, ${dartKeyType}>`;
+            return `_skir.KeyedIterable<${itemType}, ${dartKeyType}>`;
           } else {
             return `_core.Iterable<${itemType}>`;
           }
@@ -151,7 +156,7 @@ export class TypeSpeller {
           case "string":
             return "_core.String";
           case "bytes":
-            return "_soia.ByteString";
+            return "_skir.ByteString";
         }
       }
     }
@@ -170,23 +175,23 @@ export class TypeSpeller {
       case "primitive": {
         switch (type.primitive) {
           case "bool":
-            return "_soia.Serializers.bool";
+            return "_skir.Serializers.bool";
           case "int32":
-            return "_soia.Serializers.int32";
+            return "_skir.Serializers.int32";
           case "int64":
-            return "_soia.Serializers.int64";
+            return "_skir.Serializers.int64";
           case "uint64":
-            return "_soia.Serializers.uint64";
+            return "_skir.Serializers.uint64";
           case "float32":
-            return "_soia.Serializers.float32";
+            return "_skir.Serializers.float32";
           case "float64":
-            return "_soia.Serializers.float64";
+            return "_skir.Serializers.float64";
           case "timestamp":
-            return "_soia.Serializers.timestamp";
+            return "_skir.Serializers.timestamp";
           case "string":
-            return "_soia.Serializers.string";
+            return "_skir.Serializers.string";
           case "bytes":
-            return "_soia.Serializers.bytes";
+            return "_skir.Serializers.bytes";
         }
         const _: never = type.primitive;
         throw TypeError();
@@ -199,14 +204,14 @@ export class TypeSpeller {
             .join(".");
           const itemType = this.getDartType(type.item, "frozen");
           return (
-            "_soia.Serializers.keyedIterable(\n" +
+            "_skir.Serializers.keyedIterable(\n" +
             `${this.getSerializerExpression(type.item)},\n` +
             `(${itemType} it) => it.${path},\n` +
             `internal__getKeySpec: "${keyChain}",\n)`
           );
         } else {
           return (
-            "_soia.Serializers.iterable(\n" +
+            "_skir.Serializers.iterable(\n" +
             this.getSerializerExpression(type.item) +
             ",\n)"
           );
@@ -214,7 +219,7 @@ export class TypeSpeller {
       }
       case "optional": {
         return (
-          `_soia.Serializers.optional(\n` +
+          `_skir.Serializers.optional(\n` +
           this.getSerializerExpression(type.other) +
           `,\n)`
         );

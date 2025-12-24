@@ -1,9 +1,0 @@
-srcDir: ./soia-src
-
-generators:
-  - mod: ../../../dist/index.js
-    config: {}
-
-mirroredSoiagenDirs:
-  - path: ./soiagen
-    fileRegex: "\\.dart$"

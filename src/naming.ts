@@ -1,62 +1,48 @@
-import { Constant, Field, Module, RecordLocation, convertCase } from "soiac";
+import {
+  Constant,
+  Field,
+  Module,
+  RecordLocation,
+  convertCase,
+} from "skir-internal";
 
 export function structFieldToDartName(field: Field | string): string {
-  const soiaName = typeof field === "string" ? field : field.name.text;
-  const convertCaseResult = convertCase(
-    soiaName,
-    "lower_underscore",
-    "lowerCamel",
-  );
+  const skirName = typeof field === "string" ? field : field.name.text;
+  const convertCaseResult = convertCase(skirName, "lowerCamel");
   return DART_KEYWORDS.has(convertCaseResult) ||
     DART_OBJECT_SYMBOLS.has(convertCaseResult) ||
     GENERATED_STRUCT_SYMBOLS.has(convertCaseResult) ||
-    soiaName.startsWith("mutable_")
+    skirName.startsWith("mutable_")
     ? convertCaseResult + "_"
     : convertCaseResult;
 }
 
 export function enumFieldToDartName(field: Field): string {
-  const soiaName = field.name.text;
-  const convertCaseResult = convertCase(
-    soiaName,
-    field.type ? "lower_underscore" : "UPPER_UNDERSCORE",
-    "lowerCamel",
-  );
+  const skirName = field.name.text;
+  const convertCaseResult = convertCase(skirName, "lowerCamel");
   return DART_KEYWORDS.has(convertCaseResult) ||
     DART_OBJECT_SYMBOLS.has(convertCaseResult) ||
     GENERATED_ENUM_SYMBOLS.has(convertCaseResult) ||
-    soiaName.startsWith("wrap_") ||
-    soiaName.startsWith("create_")
+    skirName.startsWith("wrap_") ||
+    skirName.startsWith("create_")
     ? convertCaseResult + "_"
     : convertCaseResult;
 }
 
 export function toLowerCamel(field: Field): string {
-  const soiaName = field.name.text;
-  return convertCase(
-    soiaName,
-    field.type ? "lower_underscore" : "UPPER_UNDERSCORE",
-    "lowerCamel",
-  );
+  const skirName = field.name.text;
+  return convertCase(skirName, "lowerCamel");
 }
 
 export function toUpperCamel(field: Field): string {
-  const soiaName = field.name.text;
-  return convertCase(
-    soiaName,
-    field.type ? "lower_underscore" : "UPPER_UNDERSCORE",
-    "UpperCamel",
-  );
+  const skirName = field.name.text;
+  return convertCase(skirName, "UpperCamel");
 }
 
 export function toTopLevelConstantName(constant: Constant): string {
-  const soiaName = constant.name.text;
-  const convertCaseResult = convertCase(
-    soiaName,
-    "UPPER_UNDERSCORE",
-    "lowerCamel",
-  );
-  return DART_KEYWORDS.has(convertCaseResult) || soiaName.endsWith("_METHOD")
+  const skirName = constant.name.text;
+  const convertCaseResult = convertCase(skirName, "lowerCamel");
+  return DART_KEYWORDS.has(convertCaseResult) || skirName.endsWith("_METHOD")
     ? convertCaseResult + "_"
     : convertCaseResult;
 }
@@ -86,7 +72,7 @@ export function getClassName(
 }
 
 export function getModuleAlias(modulePath: string): string {
-  return "_lib_" + modulePath.replace(/\.soia$/, "").replace("/", "_");
+  return "_lib_" + modulePath.replace(/\.skir$/, "").replace("/", "_");
 }
 
 const DART_KEYWORDS: ReadonlySet<string> = new Set([

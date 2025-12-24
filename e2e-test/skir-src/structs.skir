@@ -1,6 +1,6 @@
-import JsonValue from "./enums.soia";
-import Weekday from "enums.soia";
-import * as car from "vehicles/car.soia";
+import JsonValue from "./enums.skir";
+import Weekday from "enums.skir";
+import * as car from "vehicles/car.skir";
 
 struct Point {
   x: int32;

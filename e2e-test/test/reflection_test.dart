@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
-import '../soiagen/reflection.dart' as reflection;
-import "package:soia/soia.dart" as soia;
+import '../skirout/reflection.dart' as reflection;
+import "package:skir/skir.dart" as skir;
 
 void main() {
   group('Reflection tests', () {
@@ -91,18 +91,18 @@ void main() {
 // BEGIN: clear debug
 // -----------------------------------------------------------------------------
 
-class _ClearDebugTransformer implements soia.ReflectiveTransformer {
+class _ClearDebugTransformer implements skir.ReflectiveTransformer {
   const _ClearDebugTransformer();
 
   @override
-  T transform<T>(T input, soia.ReflectiveTypeDescriptor<T> descriptor) {
+  T transform<T>(T input, skir.ReflectiveTypeDescriptor<T> descriptor) {
     final visitor = _ClearDebugVisitor<T>(input);
     descriptor.accept(visitor);
     return visitor.result;
   }
 }
 
-class _ClearDebugVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
+class _ClearDebugVisitor<T> extends skir.NoopReflectiveTypeVisitor<T> {
   final T input;
   T result;
 
@@ -110,8 +110,8 @@ class _ClearDebugVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
 
   @override
   void visitOptional<NotNull>(
-      soia.ReflectiveOptionalDescriptor<NotNull> descriptor,
-      soia.TypeEquivalence<T, NotNull?> equivalence) {
+      skir.ReflectiveOptionalDescriptor<NotNull> descriptor,
+      skir.TypeEquivalence<T, NotNull?> equivalence) {
     result = equivalence.toT(
       descriptor.map(
         equivalence.fromT(input),
@@ -122,8 +122,8 @@ class _ClearDebugVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
 
   @override
   void visitArray<E, Collection extends Iterable<E>>(
-      soia.ReflectiveArrayDescriptor<E, Collection> descriptor,
-      soia.TypeEquivalence<T, Collection> equivalence) {
+      skir.ReflectiveArrayDescriptor<E, Collection> descriptor,
+      skir.TypeEquivalence<T, Collection> equivalence) {
     result = equivalence.toT(
       descriptor.map(
         equivalence.fromT(input),
@@ -134,7 +134,7 @@ class _ClearDebugVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
 
   @override
   void visitStruct<Mutable>(
-      soia.ReflectiveStructDescriptor<T, Mutable> descriptor) {
+      skir.ReflectiveStructDescriptor<T, Mutable> descriptor) {
     final mutable = descriptor.newMutable();
     for (final field in descriptor.fields) {
       if (field.name != 'debug') {
@@ -149,7 +149,7 @@ class _ClearDebugVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
   }
 
   @override
-  void visitEnum(soia.ReflectiveEnumDescriptor<T> descriptor) {
+  void visitEnum(skir.ReflectiveEnumDescriptor<T> descriptor) {
     result = descriptor.mapValue(
       input,
       const _ClearDebugTransformer(),
@@ -165,18 +165,18 @@ class _ClearDebugVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
 // BEGIN: upper casify
 // -----------------------------------------------------------------------------
 
-class _UpperCasifyTransformer implements soia.ReflectiveTransformer {
+class _UpperCasifyTransformer implements skir.ReflectiveTransformer {
   const _UpperCasifyTransformer();
 
   @override
-  T transform<T>(T input, soia.ReflectiveTypeDescriptor<T> descriptor) {
+  T transform<T>(T input, skir.ReflectiveTypeDescriptor<T> descriptor) {
     final visitor = _UpperCasifyVisitor<T>(input);
     descriptor.accept(visitor);
     return visitor.result;
   }
 }
 
-class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
+class _UpperCasifyVisitor<T> extends skir.NoopReflectiveTypeVisitor<T> {
   final T input;
   T result;
 
@@ -184,8 +184,8 @@ class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
 
   @override
   void visitOptional<NotNull>(
-      soia.ReflectiveOptionalDescriptor<NotNull> descriptor,
-      soia.TypeEquivalence<T, NotNull?> equivalence) {
+      skir.ReflectiveOptionalDescriptor<NotNull> descriptor,
+      skir.TypeEquivalence<T, NotNull?> equivalence) {
     result = equivalence.toT(
       descriptor.map(
         equivalence.fromT(input),
@@ -196,8 +196,8 @@ class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
 
   @override
   void visitArray<E, Collection extends Iterable<E>>(
-      soia.ReflectiveArrayDescriptor<E, Collection> descriptor,
-      soia.TypeEquivalence<T, Collection> equivalence) {
+      skir.ReflectiveArrayDescriptor<E, Collection> descriptor,
+      skir.TypeEquivalence<T, Collection> equivalence) {
     result = equivalence.toT(
       descriptor.map(
         equivalence.fromT(input),
@@ -208,7 +208,7 @@ class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
 
   @override
   void visitStruct<Mutable>(
-      soia.ReflectiveStructDescriptor<T, Mutable> descriptor) {
+      skir.ReflectiveStructDescriptor<T, Mutable> descriptor) {
     result = descriptor.mapFields(
       input,
       const _UpperCasifyTransformer(),
@@ -216,7 +216,7 @@ class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
   }
 
   @override
-  void visitEnum(soia.ReflectiveEnumDescriptor<T> descriptor) {
+  void visitEnum(skir.ReflectiveEnumDescriptor<T> descriptor) {
     result = descriptor.mapValue(
       input,
       const _UpperCasifyTransformer(),
@@ -224,7 +224,7 @@ class _UpperCasifyVisitor<T> extends soia.NoopReflectiveTypeVisitor<T> {
   }
 
   @override
-  void visitString(soia.TypeEquivalence<T, String> equivalence) {
+  void visitString(skir.TypeEquivalence<T, String> equivalence) {
     result = equivalence.toT(
       equivalence.fromT(input).toUpperCase(),
     );

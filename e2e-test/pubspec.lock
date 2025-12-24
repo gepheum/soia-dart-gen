@@ -257,14 +257,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
-  soia:
+  skir:
     dependency: "direct main"
     description:
-      name: soia
-      sha256: "94de75c05f70dfafb4d046b4038c28ce38669cd3ff013a849ec23e5a4acdbe69"
+      name: skir
+      sha256: a69c448d0804e94d30b8ba7dab618f034f3529ecfe161f2e62c1141111509a1a
       url: "https://pub.dev"
     source: hosted
-    version: "0.2.11"
+    version: "0.0.5"
   source_map_stack_trace:
     dependency: transitive
     description:

@@ -1,11 +1,11 @@
 {
-  "name": "soia-dart-gen",
-  "version": "1.0.2",
+  "name": "skir-dart-gen",
+  "version": "0.0.1",
   "description": "",
   "keywords": [],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/gepheum/soia-dart-gen.git"
+    "url": "git+https://github.com/gepheum/skir-dart-gen.git"
   },
   "license": "ISC",
   "author": "Tyler Fibonacci <gepheum@gmail.com>",
@@ -22,15 +22,19 @@
   ],
   "scripts": {
     "build": "tsc",
-    "format-soia": "cd e2e-test && soiac --fmt fix && cd ..",
-    "format-soia:check": "cd e2e-test && soiac --fmt check && cd ..",
+    "format-skir": "cd e2e-test && skir format && cd ..",
+    "format-skir:check": "cd e2e-test && skir format check && cd ..",
     "format-dart": "cd e2e-test && dart format . && cd ..",
     "format-dart:check": "cd e2e-test && dart format --output=none --set-exit-if-changed . && cd ..",
-    "format": "prettier --write \"**/*.ts\" && npm run format-soia && npm run format-dart",
-    "format:check": "prettier --check \"**/*.ts\" && npm run format-soia:check && npm run format-dart:check",
-    "test": "npm run build && cd e2e-test && soiac -r . && dart pub get && dart analyze --fatal-infos && dart test && cd ..",
+    "format": "prettier --write \"**/*.ts\" && npm run format-skir && npm run format-dart",
+    "format:check": "prettier --check \"**/*.ts\" && npm run format-skir:check && npm run format-dart:check",
+    "test": "npm run build && cd e2e-test && skir gen && dart pub get && dart analyze --fatal-infos && dart test && cd ..",
     "lint": "eslint src/**/*.ts",
     "lint:fix": "eslint src/**/*.ts --fix"
+  },
+  "dependencies": {
+    "skir-internal": "^0.0.6",
+    "zod": "^4.0.2"
   },
   "devDependencies": {
     "@types/node": "^20.11.5",
@@ -39,7 +43,7 @@
     "eslint": "^8.54.0",
     "prettier": "^3.2.4",
     "prettier-plugin-organize-imports": "^4.2.0",
-    "soiac": "^1.0.51",
+    "skir": "^0.0.5",
     "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   }

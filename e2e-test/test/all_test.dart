@@ -1,13 +1,13 @@
 import 'package:test/test.dart';
-import '../soiagen/constants.dart' as constants;
-import '../soiagen/enums.dart' as enums;
-import '../soiagen/full_name.dart' as full_name;
-import '../soiagen/methods.dart' as methods;
-import '../soiagen/schema_change.dart' as schema_change;
-import '../soiagen/structs.dart' as structs;
-import '../soiagen/user.dart' as user;
-import '../soiagen/vehicles/car.dart' as vehicles_car;
-import 'package:soia/soia.dart' as soia;
+import '../skirout/constants.dart' as constants;
+import '../skirout/enums.dart' as enums;
+import '../skirout/full_name.dart' as full_name;
+import '../skirout/methods.dart' as methods;
+import '../skirout/schema_change.dart' as schema_change;
+import '../skirout/structs.dart' as structs;
+import '../skirout/user.dart' as user;
+import '../skirout/vehicles/car.dart' as vehicles_car;
+import 'package:skir/skir.dart' as skir;
 
 void main() {
   group('Generated struct tests', () {
@@ -284,7 +284,7 @@ void main() {
         int64: 0,
         user: structs.Item_User(id: ""),
         weekday: enums.Weekday.unknown,
-        bytes: soia.ByteString.empty,
+        bytes: skir.ByteString.empty,
         timestamp: now, // This should be converted to UTC
       );
 
@@ -461,12 +461,12 @@ void main() {
       expect(jsonCode,
           equals('[[[1.0,0,0,"bar1"],[2.0,0,0,"bar2"]],42,[1,[5,"foo"],6],1]'));
 
-      // Deserialize as FooBefore with keepUnrecognizedFields to preserve the
+      // Deserialize as FooBefore with keepUnrecognizedValues to preserve the
       // 'bit' field
       expect(
           schema_change.FooBefore.serializer.toJsonCode(schema_change
               .FooBefore.serializer
-              .fromJsonCode(jsonCode, keepUnrecognizedFields: true)),
+              .fromJsonCode(jsonCode, keepUnrecognizedValues: true)),
           equals(jsonCode));
 
       expect(
@@ -499,16 +499,16 @@ void main() {
       final bytes =
           schema_change.FooAfter.serializer.toBytes(fooAfter.toFrozen());
       expect(
-          soia.ByteString.copy(bytes).toBase16(),
+          skir.ByteString.copy(bytes).toBase16(),
           equals(
-              '736f6961fa04f8fa04f00000803f0000f30462617231fa04f0000000400000f304626172322af901f805f303666f6f0601'));
+              '736b6972fa04f8fa04f00000803f0000f30462617231fa04f0000000400000f304626172322af901f805f303666f6f0601'));
 
-      // Deserialize as FooBefore with keepUnrecognizedFields to preserve the
+      // Deserialize as FooBefore with keepUnrecognizedValues to preserve the
       // 'bit' field
       expect(
           schema_change.FooBefore.serializer.toBytes(schema_change
               .FooBefore.serializer
-              .fromBytes(bytes, keepUnrecognizedFields: true)),
+              .fromBytes(bytes, keepUnrecognizedValues: true)),
           equals(bytes));
     });
 
@@ -526,7 +526,7 @@ void main() {
       expect(jsonCode, equals('[[[0.0,0,1]],0,[3,[4,"foo"]]]'));
 
       final fooAfter = schema_change.FooAfter.serializer
-          .fromJsonCode(jsonCode, keepUnrecognizedFields: true);
+          .fromJsonCode(jsonCode, keepUnrecognizedValues: true);
 
       expect(schema_change.FooAfter.serializer.toJsonCode(fooAfter),
           equals('[[[]],0,[0,0]]'));
@@ -545,17 +545,17 @@ void main() {
 
       // Serialize FooBefore to bytes
       final bytes = schema_change.FooBefore.serializer.toBytes(fooBefore);
-      expect(soia.ByteString.copy(bytes).toBase16(),
-          equals('736f6961f9f7f900000100f803fef303666f6f'));
+      expect(skir.ByteString.copy(bytes).toBase16(),
+          equals('736b6972f9f7f900000100f803fef303666f6f'));
 
       final fooAfter = schema_change.FooAfter.serializer
-          .fromBytes(bytes, keepUnrecognizedFields: true);
+          .fromBytes(bytes, keepUnrecognizedValues: true);
 
       expect(
-          soia.ByteString.copy(
+          skir.ByteString.copy(
                   schema_change.FooAfter.serializer.toBytes(fooAfter))
               .toBase16(),
-          equals("736f6961f9f7f600f80000"));
+          equals("736b6972f9f7f600f80000"));
     });
   });
 
@@ -580,9 +580,9 @@ void main() {
 
   group('Methods tests', () {
     test('generated methods', () {
-      expect(methods.myProcedureMethod, isA<soia.Method>());
+      expect(methods.myProcedureMethod, isA<skir.Method>());
       expect(methods.myProcedureMethod.name, equals('MyProcedure'));
-      expect(methods.myProcedureMethod.number, equals(1974132327));
+      expect(methods.myProcedureMethod.number, equals(674706602));
       expect(methods.myProcedureMethod.requestSerializer,
           equals(structs.Point.serializer));
       expect(methods.myProcedureMethod.responseSerializer,
@@ -610,23 +610,23 @@ void main() {
 
   group('type descriptors', () {
     test('default value', () {
-      expect(soia.Serializers.bool.typeDescriptor.defaultValue, equals(false));
-      expect(soia.Serializers.int32.typeDescriptor.defaultValue, equals(0));
-      expect(soia.Serializers.int64.typeDescriptor.defaultValue, equals(0));
+      expect(skir.Serializers.bool.typeDescriptor.defaultValue, equals(false));
+      expect(skir.Serializers.int32.typeDescriptor.defaultValue, equals(0));
+      expect(skir.Serializers.int64.typeDescriptor.defaultValue, equals(0));
       expect(
-        soia.Serializers.uint64.typeDescriptor.defaultValue,
+        skir.Serializers.uint64.typeDescriptor.defaultValue,
         equals(BigInt.zero),
       );
-      expect(soia.Serializers.float32.typeDescriptor.defaultValue, equals(0.0));
-      expect(soia.Serializers.float64.typeDescriptor.defaultValue, equals(0.0));
+      expect(skir.Serializers.float32.typeDescriptor.defaultValue, equals(0.0));
+      expect(skir.Serializers.float64.typeDescriptor.defaultValue, equals(0.0));
       expect(
-        soia.Serializers.timestamp.typeDescriptor.defaultValue,
-        equals(soia.unixEpoch),
+        skir.Serializers.timestamp.typeDescriptor.defaultValue,
+        equals(skir.unixEpoch),
       );
-      expect(soia.Serializers.string.typeDescriptor.defaultValue, equals(""));
+      expect(skir.Serializers.string.typeDescriptor.defaultValue, equals(""));
       expect(
-        soia.Serializers.bytes.typeDescriptor.defaultValue,
-        equals(soia.ByteString.empty),
+        skir.Serializers.bytes.typeDescriptor.defaultValue,
+        equals(skir.ByteString.empty),
       );
       expect(
         vehicles_car.Car.serializer.typeDescriptor.defaultValue,

@@ -2,9 +2,9 @@ import "dart:convert" show jsonEncode;
 import "dart:typed_data" show Uint8List, ByteData;
 
 import "package:test/test.dart";
-import "package:soia/soia.dart" as soia;
+import "package:skir/skir.dart" as skir;
 
-import "../soiagen/goldens.dart";
+import "../skirout/goldens.dart";
 
 class AssertionError implements Exception {
   String message = "";
@@ -178,7 +178,7 @@ void reserializeValueAndVerify(Assertion_ReserializeValue input) {
     final expectedBytesList = expectedBytes.asUnmodifiableList;
     final buffer = Uint8List(expectedBytesList.length + 2);
     final dataView = ByteData.view(buffer.buffer);
-    final prefix = "soia";
+    final prefix = "skir";
     buffer.setRange(0, prefix.length, prefix.codeUnits);
     dataView.setUint8(4, 248);
     buffer.setRange(
@@ -311,7 +311,7 @@ void reserializeValueAndVerify(Assertion_ReserializeValue input) {
     verifyAssertion(
       Assertion.createStringEqual(
         actual: StringExpression.wrapLiteral(
-          soia.TypeDescriptor.parseFromJsonCode(actual).asJsonCode,
+          skir.TypeDescriptor.parseFromJsonCode(actual).asJsonCode,
         ),
         expected: StringExpression.wrapLiteral(input.expectedTypeDescriptor!),
       ),
@@ -322,8 +322,8 @@ void reserializeValueAndVerify(Assertion_ReserializeValue input) {
 void reserializeLargeStringAndVerify(Assertion_ReserializeLargeString input) {
   final str = "a" * input.numChars;
   {
-    final json = toDenseJson(soia.Serializers.string, str);
-    final roundTrip = fromJsonDropUnrecognized(soia.Serializers.string, json);
+    final json = toDenseJson(skir.Serializers.string, str);
+    final roundTrip = fromJsonDropUnrecognized(skir.Serializers.string, json);
     if (roundTrip != str) {
       throw AssertionError(
         actual: roundTrip,
@@ -332,8 +332,8 @@ void reserializeLargeStringAndVerify(Assertion_ReserializeLargeString input) {
     }
   }
   {
-    final json = toReadableJson(soia.Serializers.string, str);
-    final roundTrip = fromJsonDropUnrecognized(soia.Serializers.string, json);
+    final json = toReadableJson(skir.Serializers.string, str);
+    final roundTrip = fromJsonDropUnrecognized(skir.Serializers.string, json);
     if (roundTrip != str) {
       throw AssertionError(
         actual: roundTrip,
@@ -342,7 +342,7 @@ void reserializeLargeStringAndVerify(Assertion_ReserializeLargeString input) {
     }
   }
   {
-    final bytes = toBytes(soia.Serializers.string, str);
+    final bytes = toBytes(skir.Serializers.string, str);
     if (!bytes.toBase16().startsWith(input.expectedBytePrefix.toBase16())) {
       throw AssertionError(
         actual: "hex:${bytes.toBase16()}",
@@ -350,7 +350,7 @@ void reserializeLargeStringAndVerify(Assertion_ReserializeLargeString input) {
       );
     }
     final roundTrip = fromBytesDropUnrecognizedFields(
-      soia.Serializers.string,
+      skir.Serializers.string,
       bytes,
     );
     if (roundTrip != str) {
@@ -364,7 +364,7 @@ void reserializeLargeStringAndVerify(Assertion_ReserializeLargeString input) {
 
 void reserializeLargeArrayAndVerify(Assertion_ReserializeLargeArray input) {
   final array = List<int>.filled(input.numItems, 1);
-  final serializer = soia.Serializers.iterable(soia.Serializers.int32);
+  final serializer = skir.Serializers.iterable(skir.Serializers.int32);
 
   bool isArray(Iterable<int> arr) {
     return arr.length == input.numItems && arr.every((v) => v == 1);
@@ -408,7 +408,7 @@ void reserializeLargeArrayAndVerify(Assertion_ReserializeLargeArray input) {
   }
 }
 
-soia.ByteString evaluateBytes(BytesExpression expr) {
+skir.ByteString evaluateBytes(BytesExpression expr) {
   switch (expr.kind) {
     case BytesExpression_kind.literalWrapper:
       return (expr as BytesExpression_literalWrapper).value;
@@ -446,7 +446,7 @@ String evaluateString(StringExpression expr) {
 
 class TypedValueType<T> {
   final T value;
-  final soia.Serializer<T> serializer;
+  final skir.Serializer<T> serializer;
 
   TypedValueType(this.value, this.serializer);
 }
@@ -456,57 +456,57 @@ TypedValueType<dynamic> evaluateTypedValue(TypedValue literal) {
     case TypedValue_kind.boolWrapper:
       return TypedValueType(
         (literal as TypedValue_boolWrapper).value,
-        soia.Serializers.bool,
+        skir.Serializers.bool,
       );
     case TypedValue_kind.int32Wrapper:
       return TypedValueType(
         (literal as TypedValue_int32Wrapper).value,
-        soia.Serializers.int32,
+        skir.Serializers.int32,
       );
     case TypedValue_kind.int64Wrapper:
       return TypedValueType(
         (literal as TypedValue_int64Wrapper).value,
-        soia.Serializers.int64,
+        skir.Serializers.int64,
       );
     case TypedValue_kind.uint64Wrapper:
       return TypedValueType(
         (literal as TypedValue_uint64Wrapper).value,
-        soia.Serializers.uint64,
+        skir.Serializers.uint64,
       );
     case TypedValue_kind.float32Wrapper:
       return TypedValueType(
         (literal as TypedValue_float32Wrapper).value,
-        soia.Serializers.float32,
+        skir.Serializers.float32,
       );
     case TypedValue_kind.float64Wrapper:
       return TypedValueType(
         (literal as TypedValue_float64Wrapper).value,
-        soia.Serializers.float64,
+        skir.Serializers.float64,
       );
     case TypedValue_kind.timestampWrapper:
       return TypedValueType(
         (literal as TypedValue_timestampWrapper).value,
-        soia.Serializers.timestamp,
+        skir.Serializers.timestamp,
       );
     case TypedValue_kind.stringWrapper:
       return TypedValueType(
         (literal as TypedValue_stringWrapper).value,
-        soia.Serializers.string,
+        skir.Serializers.string,
       );
     case TypedValue_kind.bytesWrapper:
       return TypedValueType(
         (literal as TypedValue_bytesWrapper).value,
-        soia.Serializers.bytes,
+        skir.Serializers.bytes,
       );
     case TypedValue_kind.boolOptionalWrapper:
       return TypedValueType(
         (literal as TypedValue_boolOptionalWrapper).value,
-        soia.Serializers.optional(soia.Serializers.bool),
+        skir.Serializers.optional(skir.Serializers.bool),
       );
     case TypedValue_kind.intsWrapper:
       return TypedValueType(
         (literal as TypedValue_intsWrapper).value,
-        soia.Serializers.iterable(soia.Serializers.int32),
+        skir.Serializers.iterable(skir.Serializers.int32),
       );
     case TypedValue_kind.pointWrapper:
       return TypedValueType(
@@ -699,7 +699,7 @@ TypedValueType<dynamic> evaluateTypedValue(TypedValue literal) {
   }
 }
 
-String toDenseJson<T>(soia.Serializer<T> serializer, T input) {
+String toDenseJson<T>(skir.Serializer<T> serializer, T input) {
   try {
     return serializer.toJsonCode(input);
   } catch (e) {
@@ -708,7 +708,7 @@ String toDenseJson<T>(soia.Serializer<T> serializer, T input) {
   }
 }
 
-String toReadableJson<T>(soia.Serializer<T> serializer, T input) {
+String toReadableJson<T>(skir.Serializer<T> serializer, T input) {
   try {
     return serializer.toJsonCode(input, readableFlavor: true);
   } catch (e) {
@@ -717,23 +717,23 @@ String toReadableJson<T>(soia.Serializer<T> serializer, T input) {
   }
 }
 
-soia.ByteString toBytes<T>(soia.Serializer<T> serializer, T input) {
+skir.ByteString toBytes<T>(skir.Serializer<T> serializer, T input) {
   try {
-    return soia.ByteString.copy(serializer.toBytes(input));
+    return skir.ByteString.copy(serializer.toBytes(input));
   } catch (e) {
     throw AssertionError(message: "Failed to serialize $input to bytes: $e");
   }
 }
 
-T fromJsonKeepUnrecognized<T>(soia.Serializer<T> serializer, String json) {
+T fromJsonKeepUnrecognized<T>(skir.Serializer<T> serializer, String json) {
   try {
-    return serializer.fromJsonCode(json, keepUnrecognizedFields: true);
+    return serializer.fromJsonCode(json, keepUnrecognizedValues: true);
   } catch (e) {
     throw AssertionError(message: "Failed to deserialize $json: $e");
   }
 }
 
-T fromJsonDropUnrecognized<T>(soia.Serializer<T> serializer, String json) {
+T fromJsonDropUnrecognized<T>(skir.Serializer<T> serializer, String json) {
   try {
     return serializer.fromJsonCode(json);
   } catch (e) {
@@ -742,8 +742,8 @@ T fromJsonDropUnrecognized<T>(soia.Serializer<T> serializer, String json) {
 }
 
 T fromBytesDropUnrecognizedFields<T>(
-  soia.Serializer<T> serializer,
-  soia.ByteString bytes,
+  skir.Serializer<T> serializer,
+  skir.ByteString bytes,
 ) {
   try {
     return serializer.fromBytes(Uint8List.fromList(bytes.asUnmodifiableList));
@@ -754,12 +754,12 @@ T fromBytesDropUnrecognizedFields<T>(
 }
 
 T fromBytesKeepUnrecognized<T>(
-  soia.Serializer<T> serializer,
-  soia.ByteString bytes,
+  skir.Serializer<T> serializer,
+  skir.ByteString bytes,
 ) {
   try {
     return serializer.fromBytes(Uint8List.fromList(bytes.asUnmodifiableList),
-        keepUnrecognizedFields: true);
+        keepUnrecognizedValues: true);
   } catch (e) {
     throw AssertionError(
         message: "Failed to deserialize ${bytes.toBase16()}: $e");

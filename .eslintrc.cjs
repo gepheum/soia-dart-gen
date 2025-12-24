@@ -31,6 +31,7 @@ module.exports = {
     '@typescript-eslint/no-non-null-assertion': 'off',
     'prefer-const': 'error',
     'no-constant-condition': 'off',
+    'no-control-regex': 'off',
     'no-var': 'error',
   },
   ignorePatterns: ['dist/', 'node_modules/', '*.js'],

@@ -9,7 +9,7 @@ import {
   type RecordKey,
   type RecordLocation,
   type ResolvedType,
-} from "soiac";
+} from "skir-internal";
 import { z } from "zod";
 import {
   enumFieldToDartName,
@@ -35,7 +35,7 @@ class DartCodeGenerator implements CodeGenerator<Config> {
     const outputFiles: CodeGenerator.OutputFile[] = [];
     for (const module of input.modules) {
       outputFiles.push({
-        path: module.path.replace(/\.soia$/, ".dart"),
+        path: module.path.replace(/\.skir$/, ".dart"),
         code: new DartSourceFileGenerator(module, recordMap, config).generate(),
       });
     }
@@ -64,8 +64,8 @@ class DartSourceFileGenerator {
       //  |___/   \\___/  |_| |_| \\___/  \\__|  \\___| \\__,_||_| \\__|
       //
 
-      // To install the Soia client library:
-      //   dart pub add soia
+      // To install the Skir client library:
+      //   dart pub add skir
 
       `,
     );
@@ -137,7 +137,7 @@ class DartSourceFileGenerator {
         this.push(`final ${dartType} ${dartName};\n`);
       }
     }
-    this.push(`_soia.internal__UnrecognizedFields? _u;\n\n`);
+    this.push(`_skir.internal__UnrecognizedFields? _u;\n\n`);
 
     // Public constructor
     this.push(`factory ${className}(`);
@@ -202,9 +202,9 @@ class DartSourceFileGenerator {
       "_core.bool operator ==(other) {\n",
       "if (_core.identical(this, other)) return true;\n",
       `if (other is! ${className}) return false;\n`,
-      "return _soia.internal__listEquality.equals(_equality_proxy, other._equality_proxy);\n",
+      "return _skir.internal__listEquality.equals(_equality_proxy, other._equality_proxy);\n",
       "}\n\n",
-      "_core.int get hashCode => _soia.internal__listEquality.hash(_equality_proxy);\n\n",
+      "_core.int get hashCode => _skir.internal__listEquality.hash(_equality_proxy);\n\n",
       "_core.List get _equality_proxy => [\n",
     );
     for (const field of fields) {
@@ -213,8 +213,8 @@ class DartSourceFileGenerator {
     }
     this.push(
       "];\n\n",
-      "_core.String toString() => _soia.internal__stringify(this, serializer);\n\n",
-      `static _soia.StructSerializer<${className}, ${className}_mutable> get serializer {\n`,
+      "_core.String toString() => _skir.internal__stringify(this, serializer);\n\n",
+      `static _skir.StructSerializer<${className}, ${className}_mutable> get serializer {\n`,
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
     for (const field of fields) {
@@ -226,6 +226,7 @@ class DartSourceFileGenerator {
         `"${dartName}",\n`,
         `${field.number},\n`,
         `${serializerExpr},\n`,
+        `${toDartStringLiteral(field.doc.text)},\n`,
         `(it) => it.${dartName},\n`,
         `(it, v) => it.${dartName} = v,\n`,
         ");\n",
@@ -239,8 +240,9 @@ class DartSourceFileGenerator {
       "}\n",
       "return _serializerBuilder.serializer;\n",
       "}\n\n",
-      "static final _serializerBuilder = _soia.internal__StructSerializerBuilder(\n",
+      "static final _serializerBuilder = _skir.internal__StructSerializerBuilder(\n",
       `recordId: "${getRecordId(struct)}",\n`,
+      `doc: ${toDartStringLiteral(struct.record.doc.text)},\n`,
       "defaultInstance: defaultInstance,\n",
       "newMutable: (it) => (it != null) ? it.toMutable() : mutable(),\n",
       `toFrozen: (${className}_mutable it) => it.toFrozen(),\n`,
@@ -265,7 +267,7 @@ class DartSourceFileGenerator {
       this.push(`${dartType} ${dartName};\n`);
     }
     this.push(
-      `_soia.internal__UnrecognizedFields? _u;\n\n`,
+      `_skir.internal__UnrecognizedFields? _u;\n\n`,
       `${className}_mutable._(\n`,
     );
     for (const field of fields) {
@@ -294,18 +296,17 @@ class DartSourceFileGenerator {
       const type = field.type!;
       const dartName = structFieldToDartName(field);
       const mutableGetterName =
-        "mutable" +
-        convertCase(field.name.text, "lower_underscore", "UpperCamel");
+        "mutable" + convertCase(field.name.text, "UpperCamel");
       const mutableType = typeSpeller.getDartType(field.type!, "mutable");
       const accessor = `this.${dartName}`;
       let bodyLines: string[] = [];
       if (type.kind === "array") {
         const typeParameter = mutableType.substring(mutableType.indexOf("<"));
         bodyLines = [
-          `if (value is _soia.internal__MutableList${typeParameter}) {\n`,
+          `if (value is _skir.internal__MutableList${typeParameter}) {\n`,
           "  return value;\n",
           "} else {\n",
-          `  return ${accessor} = _soia.internal__MutableList([...value]);\n`,
+          `  return ${accessor} = _skir.internal__MutableList([...value]);\n`,
           "}\n",
         ];
       } else if (type.kind === "record") {
@@ -389,16 +390,17 @@ class DartSourceFileGenerator {
     }
     this.push(`\n${className}_kind get kind;\n`);
     this.push(
-      `static _soia.EnumSerializer<${className}> get serializer {\n`,
+      `static _skir.EnumSerializer<${className}> get serializer {\n`,
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
     for (const constantField of constantFields) {
       const dartName = enumFieldToDartName(constantField);
       this.push(
-        "_serializerBuilder.addConstantField(\n",
+        "_serializerBuilder.addConstantVariant(\n",
         `${constantField.number},\n`,
         `"${constantField.name.text}",\n`,
         `"${dartName}",\n`,
+        `${toDartStringLiteral(constantField.doc.text)},\n`,
         `${dartName},\n`,
         ");\n",
       );
@@ -407,11 +409,12 @@ class DartSourceFileGenerator {
       const type = wrapperField.type!;
       const serializerExpr = typeSpeller.getSerializerExpression(type);
       this.push(
-        "_serializerBuilder.addWrapperField(\n",
+        "_serializerBuilder.addWrapperVariant(\n",
         `${wrapperField.number},\n`,
         `"${wrapperField.name.text}",\n`,
         `"wrap${toUpperCamel(wrapperField)}",\n`,
         `${serializerExpr},\n`,
+        `${toDartStringLiteral(wrapperField.doc.text)},\n`,
         `${className}_${toLowerCamel(wrapperField)}Wrapper._,\n`,
         "(it) => it.value,\n",
         `ordinal: ${className}_kind.${toLowerCamel(wrapperField)}Wrapper._ordinal,\n`,
@@ -426,8 +429,9 @@ class DartSourceFileGenerator {
       "}\n",
       "return _serializerBuilder.serializer;\n",
       "}\n\n",
-      "static final _serializerBuilder = _soia.internal__EnumSerializerBuilder.create(\n",
+      "static final _serializerBuilder = _skir.internal__EnumSerializerBuilder.create(\n",
       `recordId: "${getRecordId(record)}",\n`,
+      `doc: ${toDartStringLiteral(record.record.doc.text)},\n`,
       `unknownInstance: ${className}_unknown._instance,\n`,
       `enumInstance: ${className}.unknown,\n`,
       `getOrdinal: (it) => it.kind._ordinal,\n`,
@@ -460,13 +464,13 @@ class DartSourceFileGenerator {
     this.push(
       `final class ${className}_unknown implements ${className} {\n`,
       `static const _instance = ${className}_unknown._();\n\n`,
-      "final _soia.internal__UnrecognizedEnum? _u;\n\n",
+      "final _skir.internal__UnrecognizedVariant? _u;\n\n",
       `const ${className}_unknown._() : _u = null;\n`,
       `${className}_unknown._unrecognized(this._u);\n\n`,
       `${className}_kind get kind => ${className}_kind.unknown;\n`,
       `_core.bool operator ==(other) => other is ${className}_unknown;\n`,
       "_core.int get hashCode => 8118964;\n",
-      "_core.String toString() => _soia.internal__stringify(this, ",
+      "_core.String toString() => _skir.internal__stringify(this, ",
       `${className}.serializer);\n`,
       "}\n\n",
     );
@@ -481,7 +485,7 @@ class DartSourceFileGenerator {
       this.push(
         `final ${className}_kind kind;\n\n`,
         `const _${className}_consts(this.kind);\n\n`,
-        "_core.String toString() => _soia.internal__stringify(this, ",
+        "_core.String toString() => _skir.internal__stringify(this, ",
         `${className}.serializer);\n`,
       );
       this.push("}\n\n"); // enum _consts
@@ -496,7 +500,7 @@ class DartSourceFileGenerator {
         "return kind == other.kind && value == other.value;\n",
         "}\n\n",
         "_core.int get hashCode => (kind._ordinal * 31) ^ value.hashCode;\n\n",
-        "_core.String toString() => _soia.internal__stringify(this, ",
+        "_core.String toString() => _skir.internal__stringify(this, ",
         `${className}.serializer);\n`,
         "}\n\n",
       );
@@ -517,8 +521,7 @@ class DartSourceFileGenerator {
   private writeMethod(method: Method): void {
     const { typeSpeller } = this;
     const methodName = method.name.text;
-    const soiaName =
-      convertCase(methodName, "UpperCamel", "lowerCamel") + "Method";
+    const skirName = convertCase(methodName, "lowerCamel") + "Method";
     const requestType = typeSpeller.getDartType(method.requestType!, "frozen");
     const requestSerializerExpr = typeSpeller.getSerializerExpression(
       method.requestType!,
@@ -531,12 +534,13 @@ class DartSourceFileGenerator {
       method.responseType!,
     );
     this.push(
-      `final _soia.Method<\n${requestType},\n${responseType}\n> ${soiaName} = \n`,
-      "_soia.Method(\n",
+      `final _skir.Method<\n${requestType},\n${responseType}\n> ${skirName} = \n`,
+      "_skir.Method(\n",
       `"${methodName}",\n`,
       `${method.number},\n`,
       requestSerializerExpr + ",\n",
       responseSerializerExpr + ",\n",
+      `${toDartStringLiteral(method.doc.text)},\n`,
       ");\n\n",
     );
   }
@@ -556,7 +560,7 @@ class DartSourceFileGenerator {
           return JSON.stringify(!!valueAsDenseJson);
         case "int32":
         case "string":
-          return JSON.stringify(valueAsDenseJson);
+          return toDartStringLiteral(valueAsDenseJson as string);
         case "int64":
           return valueAsDenseJson!.toString();
         case "float32":
@@ -584,7 +588,7 @@ class DartSourceFileGenerator {
       const serializerExpression = typeSpeller.getSerializerExpression(
         constant.type!,
       );
-      const jsonStringLiteral = JSON.stringify(
+      const jsonStringLiteral = toDartStringLiteral(
         JSON.stringify(constant.valueAsDenseJson),
       );
       this.push(
@@ -614,16 +618,16 @@ class DartSourceFileGenerator {
           case "float64":
             return { expression: "0.0", isConst: true };
           case "timestamp":
-            return { expression: "_soia.unixEpoch", isConst: false };
+            return { expression: "_skir.unixEpoch", isConst: false };
           case "string":
             return { expression: '""', isConst: true };
           case "bytes":
-            return { expression: "_soia.ByteString.empty", isConst: false };
+            return { expression: "_skir.ByteString.empty", isConst: false };
         }
         break;
       }
       case "array": {
-        return { expression: `_soia.KeyedIterable.empty`, isConst: true };
+        return { expression: `_skir.KeyedIterable.empty`, isConst: true };
       }
       case "optional": {
         return { expression: "null", isConst: true };
@@ -664,15 +668,15 @@ class DartSourceFileGenerator {
             .map((f) => structFieldToDartName(f.name.text))
             .join(".");
           if (itemToFrozenExpr === "it") {
-            return `_soia.internal__keyedCopy(${inputExpr}, "${path}", (it) => it.${path})`;
+            return `_skir.internal__keyedCopy(${inputExpr}, "${path}", (it) => it.${path})`;
           } else {
-            return `_soia.internal__keyedMappedCopy(${inputExpr}, "${path}", (it) => it.${path}, (it) => ${itemToFrozenExpr})`;
+            return `_skir.internal__keyedMappedCopy(${inputExpr}, "${path}", (it) => it.${path}, (it) => ${itemToFrozenExpr})`;
           }
         } else {
           if (itemToFrozenExpr === "it") {
-            return `_soia.internal__frozenCopy(${inputExpr})`;
+            return `_skir.internal__frozenCopy(${inputExpr})`;
           } else {
-            return `_soia.internal__frozenMappedCopy(${inputExpr}, (it) => ${itemToFrozenExpr})`;
+            return `_skir.internal__frozenMappedCopy(${inputExpr}, (it) => ${itemToFrozenExpr})`;
           }
         }
       }
@@ -697,7 +701,7 @@ class DartSourceFileGenerator {
 
   private writeImports(): void {
     this.push('import "dart:core" as _core;\n');
-    this.push('import "package:soia/soia.dart" as _soia;\n');
+    this.push('import "package:skir/skir.dart" as _skir;\n');
 
     if (this.inModule.pathToImportedNames.length) {
       this.pushEol();
@@ -705,7 +709,7 @@ class DartSourceFileGenerator {
 
     const thisPath = paths.dirname(this.inModule.path);
     for (const path of Object.keys(this.inModule.pathToImportedNames)) {
-      let dartPath = paths.relative(thisPath, path).replace(/\.soia/, ".dart");
+      let dartPath = paths.relative(thisPath, path).replace(/\.skir/, ".dart");
       if (!dartPath.startsWith(".")) {
         dartPath = `./${dartPath}`;
       }
@@ -840,6 +844,37 @@ function getRecordId(record: RecordLocation): string {
     .map((r) => r.name.text)
     .join(".");
   return `${modulePath}:${qualifiedRecordName}`;
+}
+
+function toDartStringLiteral(input: string): string {
+  const escaped = input.replace(/[\\"\n\r\t\b\f\v$\x00-\x1F\x7F]/g, (char) => {
+    // Handle common escape sequences
+    switch (char) {
+      case "\\":
+        return "\\\\";
+      case '"':
+        return '\\"';
+      case "\n":
+        return "\\n";
+      case "\r":
+        return "\\r";
+      case "\t":
+        return "\\t";
+      case "\b":
+        return "\\b";
+      case "\f":
+        return "\\f";
+      case "\v":
+        return "\\v";
+      case "$":
+        return "\\$";
+      default:
+        // For other control characters, use Unicode escaping
+        return `\\u{${char.charCodeAt(0).toString(16).padStart(4, "0")}}`;
+    }
+  });
+
+  return `"${escaped}"`;
 }
 
 export const GENERATOR = new DartCodeGenerator();

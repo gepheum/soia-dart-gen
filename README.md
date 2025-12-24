@@ -1,48 +1,48 @@
-[![npm](https://img.shields.io/npm/v/soia-dart-gen)](https://www.npmjs.com/package/soia-dart-gen)
-[![build](https://github.com/gepheum/soia-dart-gen/workflows/Build/badge.svg)](https://github.com/gepheum/soia-dart-gen/actions)
+[![npm](https://img.shields.io/npm/v/skir-dart-gen)](https://www.npmjs.com/package/skir-dart-gen)
+[![build](https://github.com/gepheum/skir-dart-gen/workflows/Build/badge.svg)](https://github.com/gepheum/skir-dart-gen/actions)
 
-# Soia's Dart code generator
+# Skir's Dart code generator
 
-Official plugin for generating Dart code from [.soia](https://github.com/gepheum/soia) files.
+Official plugin for generating Dart code from [.skir](https://github.com/gepheum/skir) files.
 
 Targets Dart 3.0 and higher.
 
 ## Installation
 
-From your project's root directory, run `npm i --save-dev soia-dart-gen`.
+From your project's root directory, run `npm i --save-dev skir-dart-gen`.
 
-In your `soia.yml` file, add the following snippet under `generators`:
+In your `skir.yml` file, add the following snippet under `generators`:
 ```yaml
-  - mod: soia-dart-gen
+  - mod: skir-dart-gen
     config: {}
 ```
 
-The `npm run soiac` command will now generate .dart files within the `soiagen` directory.
+The `npm run skirc` command will now generate .dart files within the `skirout` directory.
 
-The generated Dart code has a runtime dependency on the `soia` library. Add this line to your `pubspec.yaml` file under `dependencies`:
+The generated Dart code has a runtime dependency on the `skir` library. Add this line to your `pubspec.yaml` file under `dependencies`:
 
 ```yaml
-  soia: ^0.3.0  # Use the latest version
+  skir: ^0.3.0  # Use the latest version
 ```
 
-For more information, see this Dart project [example](https://github.com/gepheum/soia-dart-example).
+For more information, see this Dart project [example](https://github.com/gepheum/skir-dart-example).
 
 ## Dart generated code guide
 
-The examples below are for the code generated from [this](https://github.com/gepheum/soia-dart-example/blob/main/lib/soia_src/user.soia) .soia file.
+The examples below are for the code generated from [this](https://github.com/gepheum/skir-dart-example/blob/main/lib/skir_src/user.skir) .skir file.
 
 ### Referring to generated symbols
 
 ```dart
-// Import the given symbols from the Dart module generated from "user.soia"
-import 'package:soia_dart_example/soiagen/user.dart';
+// Import the given symbols from the Dart module generated from "user.skir"
+import 'package:skir_dart_example/skirout/user.dart';
 
 // Now you can use: tarzan, User, UserHistory, UserRegistry, etc.
 ```
 
 ### Struct classes
 
-For every struct `S` in the .soia file, soia generates a frozen (deeply immutable) class `S` and a mutable class `S_mutable`.
+For every struct `S` in the .skir file, skir generates a frozen (deeply immutable) class `S` and a mutable class `S_mutable`.
 
 #### Frozen struct classes
 
@@ -163,7 +163,7 @@ greet(mutableLyla);
 
 ### Enum classes
 
-The definition of the `SubscriptionStatus` enum in the .soia file is:
+The definition of the `SubscriptionStatus` enum in the .skir file is:
 ```rust
 enum SubscriptionStatus {
   FREE;
@@ -245,7 +245,7 @@ print(serializer.toJsonCode(john, readableFlavor: true));
 // }
 
 // The dense JSON flavor is the flavor you should pick if you intend to
-// deserialize the value in the future. Soia allows fields to be renamed, and
+// deserialize the value in the future. Skir allows fields to be renamed, and
 // because field names are not part of the dense JSON, renaming a field does
 // not prevent you from deserializing the value.
 // You should pick the readable flavor mostly for debugging purposes.
@@ -317,7 +317,7 @@ final userRegistry = UserRegistry(
   users: [john, jane, mutableLyla],
 );
 
-// findByKey() returns the user with the given key (specified in the .soia file).
+// findByKey() returns the user with the given key (specified in the .skir file).
 // In this example, the key is 'user_id'.
 // The first lookup runs in O(N) time, and the following lookups run in O(1)
 // time.
@@ -340,7 +340,7 @@ print(tarzan);
 //       picture: "🐒",
 //     ),
 //   ],
-//   subscriptionStatus: user_soia:User_SubscriptionStatus.wrapTrial(
+//   subscriptionStatus: user_skir:User_SubscriptionStatus.wrapTrial(
 //     User_Trial(
 //       startTime: DateTime.fromMillisecondsSinceEpoch(
 //         // 2025-04-02T11:13:29.000Z
@@ -351,22 +351,22 @@ print(tarzan);
 // )
 ```
 
-### Soia services
+### Skir services
 
-#### Starting a soia service on an HTTP server
+#### Starting a skir service on an HTTP server
 
-Full example [here](https://github.com/gepheum/soia-dart-example/blob/main/bin/start_service.dart).
+Full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/start_service.dart).
 
-#### Sending RPCs to a soia service
+#### Sending RPCs to a skir service
 
-Full example [here](https://github.com/gepheum/soia-dart-example/blob/main/bin/call_service.dart).
+Full example [here](https://github.com/gepheum/skir-dart-example/blob/main/bin/call_service.dart).
 
 ### Reflection
 
-Reflection allows you to inspect a soia type at runtime.
+Reflection allows you to inspect a skir type at runtime.
 
 ```dart
-import 'package:soia/soia.dart' as soia;
+import 'package:skir/skir.dart' as skir;
 
 final fieldNames = <String>[];
 for (final field in User.serializer.typeDescriptor.fields) {
@@ -376,15 +376,15 @@ print(fieldNames);
 // [user_id, name, quote, pets, subscription_status]
 
 // A type descriptor can be serialized to JSON and deserialized later.
-final typeDescriptor = soia.TypeDescriptor.parseFromJson(
+final typeDescriptor = skir.TypeDescriptor.parseFromJson(
   User.serializer.typeDescriptor.asJson,
 );
 print("Type descriptor deserialized successfully");
 
 // The 'allStringsToUpperCase' function uses reflection to convert all the
-// strings contained in a given Soia value to upper case.
+// strings contained in a given Skir value to upper case.
 // See the implementation at
-// https://github.com/gepheum/soia-dart-example/blob/main/lib/all_strings_to_upper_case.dart
+// https://github.com/gepheum/skir-dart-example/blob/main/lib/all_strings_to_upper_case.dart
 print(allStringsToUpperCase<User>(tarzan, User.serializer.typeDescriptor));
 // User(
 //   userId: 123,
