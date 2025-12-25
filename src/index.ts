@@ -66,7 +66,7 @@ class DartSourceFileGenerator {
       //
 
       // To install the Skir client library:
-      //   dart pub add skir
+      //   dart pub add skir_client
 
       `,
     );
@@ -761,7 +761,7 @@ class DartSourceFileGenerator {
 
   private writeImports(): void {
     this.push('import "dart:core" as _core;\n');
-    this.push('import "package:skir/skir.dart" as _skir;\n');
+    this.push('import "package:skir_client/skir_client.dart" as _skir;\n');
 
     if (this.inModule.pathToImportedNames.length) {
       this.pushEol();

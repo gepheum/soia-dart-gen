@@ -257,14 +257,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.0"
-  skir:
+  skir_client:
     dependency: "direct main"
     description:
-      name: skir
-      sha256: a69c448d0804e94d30b8ba7dab618f034f3529ecfe161f2e62c1141111509a1a
+      name: skir_client
+      sha256: ea4bba113ab2b39febecdbda3c595b61bf57ba9b3c5fbed81005565ea2c853ea
       url: "https://pub.dev"
     source: hosted
-    version: "0.0.5"
+    version: "0.0.8"
   source_map_stack_trace:
     dependency: transitive
     description:

@@ -1,6 +1,6 @@
 import 'package:test/test.dart';
 import '../skirout/reflection.dart' as reflection;
-import "package:skir/skir.dart" as skir;
+import "package:skir_client/skir_client.dart" as skir;
 
 void main() {
   group('Reflection tests', () {

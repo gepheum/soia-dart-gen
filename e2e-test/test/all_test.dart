@@ -7,7 +7,7 @@ import '../skirout/schema_change.dart' as schema_change;
 import '../skirout/structs.dart' as structs;
 import '../skirout/user.dart' as user;
 import '../skirout/vehicles/car.dart' as vehicles_car;
-import 'package:skir/skir.dart' as skir;
+import 'package:skir_client/skir_client.dart' as skir;
 
 void main() {
   group('Generated struct tests', () {

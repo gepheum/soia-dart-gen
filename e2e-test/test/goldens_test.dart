@@ -2,7 +2,7 @@ import "dart:convert" show jsonEncode;
 import "dart:typed_data" show Uint8List, ByteData;
 
 import "package:test/test.dart";
-import "package:skir/skir.dart" as skir;
+import "package:skir_client/skir_client.dart" as skir;
 
 import "../skirout/goldens.dart";
 
