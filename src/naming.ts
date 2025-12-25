@@ -17,8 +17,8 @@ export function structFieldToDartName(field: Field | string): string {
     : convertCaseResult;
 }
 
-export function enumFieldToDartName(field: Field): string {
-  const skirName = field.name.text;
+export function enumVariantToDartName(variant: Field): string {
+  const skirName = variant.name.text;
   const convertCaseResult = convertCase(skirName, "lowerCamel");
   return DART_KEYWORDS.has(convertCaseResult) ||
     DART_OBJECT_SYMBOLS.has(convertCaseResult) ||

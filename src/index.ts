@@ -13,7 +13,7 @@ import {
 } from "skir-internal";
 import { z } from "zod";
 import {
-  enumFieldToDartName,
+  enumVariantToDartName,
   getModuleAlias,
   structFieldToDartName,
   toLowerCamel,
@@ -357,9 +357,9 @@ class DartSourceFileGenerator {
 
   private writeClassesForEnum(record: RecordLocation): void {
     const { typeSpeller } = this;
-    const { fields } = record.record;
-    const constantFields = fields.filter((f) => !f.type);
-    const wrapperFields = fields.filter((f) => f.type);
+    const { fields: variants } = record.record;
+    const constantVariants = variants.filter((f) => !f.type);
+    const wrapperVariants = variants.filter((f) => f.type);
     const className = typeSpeller.getClassName(record);
     // The actual enum class
     this.push(
@@ -375,11 +375,11 @@ class DartSourceFileGenerator {
         "  switch (e) {",
         `    case ${className}_unknown(): { ... }`,
       ];
-      for (const variant of constantFields) {
-        const dartName = enumFieldToDartName(variant);
+      for (const variant of constantVariants) {
+        const dartName = enumVariantToDartName(variant);
         commentLines.push(`    case ${className}.${dartName}: { ... }`);
       }
-      for (const variant of wrapperFields) {
+      for (const variant of wrapperVariants) {
         const variantClassName = `${className}_${toLowerCamel(variant)}`;
         commentLines.push(`    case ${variantClassName}(:var value): { ... }`);
       }
@@ -394,31 +394,36 @@ class DartSourceFileGenerator {
       `/// Default value for fields of type \`${className}\`.\n`,
       `static const ${className} unknown = ${className}_unknown._instance;\n\n`,
     );
-    for (const field of constantFields) {
+    for (const variant of constantVariants) {
       this.push(
-        ...commentify(docToCommentText(field.doc)),
-        `static const ${enumFieldToDartName(field)} = `,
-        `_${className}_consts.${toLowerCamel(field)}Const;\n`,
+        ...commentify(docToCommentText(variant.doc)),
+        `static const ${enumVariantToDartName(variant)} = `,
+        `_${className}_consts.${toLowerCamel(variant)}Const;\n`,
       );
     }
     this.pushEol();
-    for (const field of wrapperFields) {
-      const type = field.type!;
+    for (const variant of wrapperVariants) {
+      const type = variant.type!;
       const dartType = typeSpeller.getDartType(type, "frozen");
       this.push(
         commentify([
-          `Create a '${field.name.text}' variant wrapping around the given value.\n`,
-          docToCommentText(field.doc),
+          `Create a '${variant.name.text}' variant wrapping around the given value.\n`,
+          docToCommentText(variant.doc),
         ]),
-        `factory ${className}.wrap${toUpperCamel(field)}(\n`,
+        `factory ${className}.wrap${toUpperCamel(variant)}(\n`,
         `${dartType} value\n`,
-        `) => ${className}_${toLowerCamel(field)}Wrapper._(value);\n\n`,
+        `) => ${className}_${toLowerCamel(variant)}Wrapper._(value);\n\n`,
       );
       if (type.kind === "record") {
         const record = typeSpeller.recordMap.get(type.key)!;
         if (record.record.recordType === "struct") {
           const struct = record.record;
-          this.push(`factory ${className}.create${toUpperCamel(field)}(`);
+          const structName = typeSpeller.getClassName(record);
+          const wrapName = `wrap${toUpperCamel(variant)}`;
+          this.push(
+            `/// Same as \`${wrapName}(${structName}(...))\`.\n`,
+            `factory ${className}.create${toUpperCamel(variant)}(`,
+          );
           const structFields = struct.fields;
           this.push(structFields.length ? "{\n" : "");
           for (const structField of structFields) {
@@ -428,8 +433,8 @@ class DartSourceFileGenerator {
             this.push(`required ${dartType} ${dartName},\n`);
           }
           this.push(structFields.length ? "}" : "");
-          this.push(`) => ${className}.wrap${toUpperCamel(field)}(\n`);
-          this.push(`${typeSpeller.getClassName(record)}(\n`);
+          this.push(`) => ${className}.${wrapName}(\n`);
+          this.push(`${structName}(\n`);
           for (const structField of structFields) {
             const dartName = structFieldToDartName(structField);
             this.push(`${dartName}: ${dartName},\n`);
@@ -445,31 +450,31 @@ class DartSourceFileGenerator {
       `static _skir.EnumSerializer<${className}> get serializer {\n`,
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
-    for (const constantField of constantFields) {
-      const dartName = enumFieldToDartName(constantField);
+    for (const constantVariant of constantVariants) {
+      const dartName = enumVariantToDartName(constantVariant);
       this.push(
         "_serializerBuilder.addConstantVariant(\n",
-        `${constantField.number},\n`,
-        `"${constantField.name.text}",\n`,
+        `${constantVariant.number},\n`,
+        `"${constantVariant.name.text}",\n`,
         `"${dartName}",\n`,
-        `${toDartStringLiteral(constantField.doc.text)},\n`,
+        `${toDartStringLiteral(constantVariant.doc.text)},\n`,
         `${dartName},\n`,
         ");\n",
       );
     }
-    for (const wrapperField of wrapperFields) {
-      const type = wrapperField.type!;
+    for (const wrapperVariant of wrapperVariants) {
+      const type = wrapperVariant.type!;
       const serializerExpr = typeSpeller.getSerializerExpression(type);
       this.push(
         "_serializerBuilder.addWrapperVariant(\n",
-        `${wrapperField.number},\n`,
-        `"${wrapperField.name.text}",\n`,
-        `"wrap${toUpperCamel(wrapperField)}",\n`,
+        `${wrapperVariant.number},\n`,
+        `"${wrapperVariant.name.text}",\n`,
+        `"wrap${toUpperCamel(wrapperVariant)}",\n`,
         `${serializerExpr},\n`,
-        `${toDartStringLiteral(wrapperField.doc.text)},\n`,
-        `${className}_${toLowerCamel(wrapperField)}Wrapper._,\n`,
+        `${toDartStringLiteral(wrapperVariant.doc.text)},\n`,
+        `${className}_${toLowerCamel(wrapperVariant)}Wrapper._,\n`,
         "(it) => it.value,\n",
-        `ordinal: ${className}_kind.${toLowerCamel(wrapperField)}Wrapper._ordinal,\n`,
+        `ordinal: ${className}_kind.${toLowerCamel(wrapperVariant)}Wrapper._ordinal,\n`,
         ");\n",
       );
     }
@@ -499,13 +504,13 @@ class DartSourceFileGenerator {
       "unknown(0),\n",
     );
     let ordinalCounter = 1;
-    for (const field of constantFields) {
+    for (const variant of constantVariants) {
       const ordinal = ordinalCounter++;
-      this.push(`${toLowerCamel(field)}Const(${ordinal}),\n`);
+      this.push(`${toLowerCamel(variant)}Const(${ordinal}),\n`);
     }
-    for (const field of wrapperFields) {
+    for (const variant of wrapperVariants) {
       const ordinal = ordinalCounter++;
-      this.push(`${toLowerCamel(field)}Wrapper(${ordinal}),\n`);
+      this.push(`${toLowerCamel(variant)}Wrapper(${ordinal}),\n`);
     }
     this.replaceEnd(",\n", ";\n\n");
     this.push(
@@ -528,10 +533,10 @@ class DartSourceFileGenerator {
       "}\n\n",
     );
     // The _consts_ internal enum
-    if (constantFields.length) {
+    if (constantVariants.length) {
       this.push(`enum _${className}_consts implements ${className} {\n`);
-      for (const field of constantFields) {
-        const name = toLowerCamel(field) + "Const";
+      for (const variant of constantVariants) {
+        const name = toLowerCamel(variant) + "Const";
         this.push(`${name}(${className}_kind.${name}),\n`);
       }
       this.replaceEnd(",\n", ";\n\n");
@@ -543,7 +548,7 @@ class DartSourceFileGenerator {
       );
       this.push("}\n\n"); // enum _consts
     }
-    if (wrapperFields.length) {
+    if (wrapperVariants.length) {
       // The _wrapper abstract class
       this.push(
         `sealed class _${className}_wrapper implements ${className} {\n`,
@@ -557,14 +562,14 @@ class DartSourceFileGenerator {
         `${className}.serializer);\n`,
         "}\n\n",
       );
-      for (const field of wrapperFields) {
-        const dartType = typeSpeller.getDartType(field.type!, "frozen");
+      for (const variant of wrapperVariants) {
+        const dartType = typeSpeller.getDartType(variant.type!, "frozen");
         this.push(
-          `final class ${className}_${toLowerCamel(field)}Wrapper `,
+          `final class ${className}_${toLowerCamel(variant)}Wrapper `,
           `extends _${className}_wrapper {\n`,
           `final ${dartType} value;\n\n`,
-          `${className}_${toLowerCamel(field)}Wrapper._(this.value);\n\n`,
-          `${className}_kind get kind => ${className}_kind.${toLowerCamel(field)}Wrapper;\n`,
+          `${className}_${toLowerCamel(variant)}Wrapper._(this.value);\n\n`,
+          `${className}_kind get kind => ${className}_kind.${toLowerCamel(variant)}Wrapper;\n`,
           "}\n\n",
         );
       }
