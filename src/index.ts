@@ -1,6 +1,7 @@
 import * as paths from "path";
 import {
   convertCase,
+  Doc,
   Field,
   type CodeGenerator,
   type Constant,
@@ -112,6 +113,7 @@ class DartSourceFileGenerator {
         "maybe-mutable",
         allRecordsFrozen,
       );
+      this.push(...commentify(docToCommentText(field.doc)));
       this.push(`${dartType} get ${dartName};\n`);
     }
     if (fields.length) {
@@ -120,10 +122,15 @@ class DartSourceFileGenerator {
     this.push(
       `${className} toFrozen();\n`,
       "}\n\n", // class _orMutable
+      ...commentify([
+        docToCommentText(struct.record.doc),
+        "\nDeeply immutable.",
+      ]),
       `final class ${className} implements ${className}_orMutable {\n`,
     );
 
     for (const field of fields) {
+      this.push(...commentify(docToCommentText(field.doc)));
       const dartName = structFieldToDartName(field);
       const type = field.type!;
       const dartType = typeSpeller.getDartType(type, "frozen");
@@ -168,6 +175,7 @@ class DartSourceFileGenerator {
     }
     this.push(
       ");\n\n", //
+      "/// Default instance with all fields set to their default values.\n",
       `static final defaultInstance = ${className}._(\n`,
     );
     for (const field of fields) {
@@ -180,6 +188,8 @@ class DartSourceFileGenerator {
     }
     this.push(
       ");\n\n",
+      "/// Returns a new mutable instance.\n",
+      "/// Fields are initialized to their default values.\n",
       `static ${className}_mutable mutable() => ${className}_mutable._(\n`,
     );
     for (const field of fields) {
@@ -189,8 +199,10 @@ class DartSourceFileGenerator {
     this.push(`);\n\n`);
 
     this.push(
+      "/// Returns this instance (no-op).\n",
       "@_core.deprecated\n",
       `${className} toFrozen() => this;\n\n`,
+      "/// Returns a mutable shallow copy of this instance.\n",
       `${className}_mutable toMutable() => ${className}_mutable._(\n`,
     );
     for (const field of fields) {
@@ -214,6 +226,7 @@ class DartSourceFileGenerator {
     this.push(
       "];\n\n",
       "_core.String toString() => _skir.internal__stringify(this, serializer);\n\n",
+      `/// Serializer for \`${className}\` instances.\n`,
       `static _skir.StructSerializer<${className}, ${className}_mutable> get serializer {\n`,
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
@@ -253,6 +266,7 @@ class DartSourceFileGenerator {
     ); // class frozen
 
     this.push(
+      `/// Mutable version of [${className}].\n`,
       `final class ${className}_mutable implements ${className}_orMutable {\n\n`,
     );
     for (const field of fields) {
@@ -264,6 +278,7 @@ class DartSourceFileGenerator {
         "maybe-mutable",
         allRecordsFrozen,
       );
+      this.push(...commentify(docToCommentText(field.doc)));
       this.push(`${dartType} ${dartName};\n`);
     }
     this.push(
@@ -276,7 +291,10 @@ class DartSourceFileGenerator {
     }
     this.push(");\n\n");
     this.writeMutableGetters(fields);
-    this.push(`${className} toFrozen() => ${className}(\n`);
+    this.push(
+      "/// Returns a deeply frozen copy of this instance.\n",
+      `${className} toFrozen() => ${className}(\n`,
+    );
     for (const field of fields) {
       const dartName = structFieldToDartName(field);
       this.push(`${dartName}: this.${dartName},\n`);
@@ -324,6 +342,8 @@ class DartSourceFileGenerator {
       }
       if (bodyLines.length) {
         this.push(
+          `/// If the value of [${dartName}] is already mutable, returns it as-is.\n`,
+          `/// Otherwise, makes a mutable copy, assigns it back to [${dartName}] and returns it.\n`,
           `${mutableType} get ${mutableGetterName} {\n`,
           `final value = ${accessor};\n`,
         );
@@ -346,11 +366,37 @@ class DartSourceFileGenerator {
       `${DartSourceFileGenerator.SEPARATOR}\n`,
       `// enum ${className.replace("_", ".")}\n`,
       `${DartSourceFileGenerator.SEPARATOR}\n\n`,
+    );
+    {
+      const commentLines = [
+        docToCommentText(record.record.doc),
+        "\nTo switch on the variants:",
+        "  ```",
+        "  switch (e) {",
+        `    case ${className}_unknown(): { ... }`,
+      ];
+      for (const variant of constantFields) {
+        const dartName = enumFieldToDartName(variant);
+        commentLines.push(`    case ${className}.${dartName}: { ... }`);
+      }
+      for (const variant of wrapperFields) {
+        const variantClassName = `${className}_${toLowerCamel(variant)}`;
+        commentLines.push(`    case ${variantClassName}(:var value): { ... }`);
+      }
+      commentLines.push("  }");
+      commentLines.push("  ```");
+      commentLines.push("\nDeeply immutable.");
+      this.push(...commentify(commentLines));
+    }
+    this.push(
       `sealed class ${className} {\n`,
+      `/// Constant indicating an unknown \`${className}\`.\n`,
+      `/// Default value for fields of type \`${className}\`.\n`,
       `static const ${className} unknown = ${className}_unknown._instance;\n\n`,
     );
     for (const field of constantFields) {
       this.push(
+        ...commentify(docToCommentText(field.doc)),
         `static const ${enumFieldToDartName(field)} = `,
         `_${className}_consts.${toLowerCamel(field)}Const;\n`,
       );
@@ -360,6 +406,10 @@ class DartSourceFileGenerator {
       const type = field.type!;
       const dartType = typeSpeller.getDartType(type, "frozen");
       this.push(
+        commentify([
+          `Create a '${field.name.text}' variant wrapping around the given value.\n`,
+          docToCommentText(field.doc),
+        ]),
         `factory ${className}.wrap${toUpperCamel(field)}(\n`,
         `${dartType} value\n`,
         `) => ${className}_${toLowerCamel(field)}Wrapper._(value);\n\n`,
@@ -388,8 +438,10 @@ class DartSourceFileGenerator {
         }
       }
     }
-    this.push(`\n${className}_kind get kind;\n`);
     this.push(
+      `/// Returns the kind of variant held by this ${className}.\n`,
+      `${className}_kind get kind;\n\n`,
+      `/// Serializer for \`${className}\` instances.\n`,
       `static _skir.EnumSerializer<${className}> get serializer {\n`,
       "if (_serializerBuilder.mustInitialize()) {\n",
     );
@@ -442,6 +494,7 @@ class DartSourceFileGenerator {
     );
     // The _kind enum
     this.push(
+      `/// The kind of variant held by a \`${className}\`.\n`,
       `enum ${className}_kind {\n`, //
       "unknown(0),\n",
     );
@@ -534,6 +587,7 @@ class DartSourceFileGenerator {
       method.responseType!,
     );
     this.push(
+      ...commentify(docToCommentText(method.doc)),
       `final _skir.Method<\n${requestType},\n${responseType}\n> ${skirName} = \n`,
       "_skir.Method(\n",
       `"${methodName}",\n`,
@@ -582,6 +636,7 @@ class DartSourceFileGenerator {
       }
     };
     const dartConstLiteral = tryGetDartConstLiteral();
+    this.push(...commentify(docToCommentText(constant.doc)));
     if (dartConstLiteral !== undefined) {
       this.push(`const ${dartType} ${name} = ${dartConstLiteral};\n\n`);
     } else {
@@ -875,6 +930,32 @@ function toDartStringLiteral(input: string): string {
   });
 
   return `"${escaped}"`;
+}
+
+function commentify(textOrLines: string | readonly string[]): string {
+  const text = (
+    typeof textOrLines === "string" ? textOrLines : textOrLines.join("\n")
+  )
+    .replace(/^\s*\n+/g, "")
+    .replace(/\n+\s*$/g, "")
+    .replace(/\n{3,}/g, "\n\n");
+  if (text.length <= 0) {
+    return "";
+  }
+  return "/// " + text.replace(/\n/g, "\n/// ") + "\n";
+}
+
+function docToCommentText(doc: Doc): string {
+  return doc.pieces
+    .map((p) => {
+      switch (p.kind) {
+        case "text":
+          return p.text;
+        case "reference":
+          return "`" + p.referenceRange.text.slice(1, -1) + "`";
+      }
+    })
+    .join("");
 }
 
 export const GENERATOR = new DartCodeGenerator();

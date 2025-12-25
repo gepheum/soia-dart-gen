@@ -1,3 +1,4 @@
+/// A day of the week
 enum Weekday {
   MONDAY;
   TUESDAY;
@@ -5,11 +6,13 @@ enum Weekday {
   THURSDAY;
   FRIDAY;
   SATURDAY;
+  /// Fun day
   SUNDAY;
 }
 
 enum JsonValue {
   NULL = 1;
+  /// A bool value
   boolean: bool = 100;
   number: float64 = 6;
   string: string = 3;
