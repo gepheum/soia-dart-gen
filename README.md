@@ -7,22 +7,19 @@ Official plugin for generating Dart code from [.skir](https://github.com/gepheum
 
 Targets Dart 3.0 and higher.
 
-## Installation
-
-From your project's root directory, run `npm i --save-dev skir-dart-gen`.
+## Set up
 
 In your `skir.yml` file, add the following snippet under `generators`:
 ```yaml
   - mod: skir-dart-gen
+    outDir: ./src/skirout
     config: {}
 ```
-
-The `npm run skirc` command will now generate .dart files within the `skirout` directory.
 
 The generated Dart code has a runtime dependency on the `skir` library. Add this line to your `pubspec.yaml` file under `dependencies`:
 
 ```yaml
-  skir: ^0.3.0  # Use the latest version
+  skir: ^0.0.8  # Use the latest version
 ```
 
 For more information, see this Dart project [example](https://github.com/gepheum/skir-dart-example).
@@ -61,18 +58,13 @@ final john = User(
       picture: "🐘",
     ),
   ],
-  subscriptionStatus: User_SubscriptionStatus.free,
+    subscriptionStatus: SubscriptionStatus.free,
   // foo: "bar",
   // ^ Does not compile: 'foo' is not a field of User
 );
 
 assert(john.name == "John Doe");
 
-// Lists passed to the constructor are copied into frozen lists to ensure
-// deep immutability.
-assert(john.pets is List);
-
-// Static type checkers will raise an error if you try to modify a frozen struct:
 // john.name = "John Smith";
 // ^ Does not compile: all the properties are read-only
 
@@ -105,21 +97,27 @@ assert(User.defaultInstance.pets.isEmpty);
 ```dart
 // 'User_mutable' is a dataclass similar to User except it is mutable.
 // Use User.mutable() to create a new instance.
-final mutableLyla = User.mutable()..userId = 44;
+final User_mutable mutableLyla = User.mutable()..userId = 44;
 mutableLyla.name = "Lyla Doe";
 
-final userHistory = UserHistory.mutable();
+final UserHistory_mutable userHistory = UserHistory.mutable();
 userHistory.user = mutableLyla;
 // ^ The right-hand side of the assignment can be either frozen or mutable.
-
-// userHistory.user.quote = "I am Lyla."
-// ^ Static error: quote is readonly because userHistory.user may be frozen
 
 // The 'mutableUser' getter provides access to a mutable version of 'user'.
 // If 'user' is already mutable, it returns it directly.
 // If 'user' is frozen, it creates a mutable shallow copy, assigns it to
 // 'user', and returns it.
-userHistory.mutableUser.quote = "I am Lyla.";
+
+// The user is currently 'mutableLyla', which is mutable.
+assert(identical(userHistory.mutableUser, mutableLyla));
+// Now assign a frozen User to 'user'.
+userHistory.user = john;
+// Since 'john' is frozen, mutableUser makes a mutable shallow copy of it.
+assert(!identical(userHistory.mutableUser, john));
+userHistory.mutableUser.name = "John the Second";
+assert(userHistory.user.name == "John the Second");
+assert(userHistory.user.userId == 42);
 
 // Similarly, 'mutablePets' provides access to a mutable version of 'pets'.
 // It returns the existing list if already mutable, or creates and returns a
@@ -175,20 +173,22 @@ enum SubscriptionStatus {
 #### Making enum values
 
 ```dart
-final johnStatus = User_SubscriptionStatus.free;
-final janeStatus = User_SubscriptionStatus.premium;
+final johnStatus = SubscriptionStatus.free;
+final janeStatus = SubscriptionStatus.premium;
 
-final jolyStatus = User_SubscriptionStatus.unknown;
+final jolyStatus = SubscriptionStatus.unknown;
 
-// Use wrapX() for data variants (wraps an existing value).
-final roniStatus = User_SubscriptionStatus.wrapTrial(
-  User_Trial(
-    startTime: DateTime.fromMillisecondsSinceEpoch(1234, isUtc: true),
-  ),
+// Use wrapX() or createX() for wrapper fields:
+//   - wrapX() expects the value to wrap.
+//   - createX() creates a new struct with the given params and wraps it
+
+final roniStatus = SubscriptionStatus.wrapTrial(
+  SubscriptionStatus_Trial(
+      startTime: DateTime.fromMillisecondsSinceEpoch(1234, isUtc: true)),
 );
 
-// More concisely, use createX() to create and wrap a new struct with the given params.
-final ericStatus = User_SubscriptionStatus.createTrial(
+// More concisely, with createX():
+final ericStatus = SubscriptionStatus.createTrial(
   startTime: DateTime.fromMillisecondsSinceEpoch(5678, isUtc: true),
 );
 ```
@@ -196,21 +196,23 @@ final ericStatus = User_SubscriptionStatus.createTrial(
 #### Conditions on enums
 
 ```dart
-assert(johnStatus == User_SubscriptionStatus.free);
-assert(janeStatus == User_SubscriptionStatus.premium);
-assert(jolyStatus == User_SubscriptionStatus.unknown);
+assert(johnStatus == SubscriptionStatus.free);
+assert(janeStatus == SubscriptionStatus.premium);
+assert(jolyStatus == SubscriptionStatus.unknown);
 
-if (roniStatus is User_SubscriptionStatus_trialWrapper) {
+if (roniStatus is SubscriptionStatus_trialWrapper) {
   assert(roniStatus.value.startTime.millisecondsSinceEpoch == 1234);
+} else {
+  throw AssertionError();
 }
 
-String getSubscriptionInfoText(User_SubscriptionStatus status) {
+String getSubscriptionInfoText(SubscriptionStatus status) {
   // Use pattern matching for typesafe switches on enums.
   return switch (status) {
-    User_SubscriptionStatus_unknown() => "Unknown subscription status",
-    User_SubscriptionStatus.free => "Free user",
-    User_SubscriptionStatus.premium => "Premium user",
-    User_SubscriptionStatus_trialWrapper(:final value) =>
+    SubscriptionStatus_unknown() => "Unknown subscription status",
+    SubscriptionStatus.free => "Free user",
+    SubscriptionStatus.premium => "Premium user",
+    SubscriptionStatus_trialWrapper(:final value) =>
       "On trial since ${value.startTime}",
   };
 }
@@ -264,12 +266,13 @@ print(serializer.toBytes(john));
 ```dart
 // Use fromJson(), fromJsonCode() and fromBytes() to deserialize.
 
-assert(john == serializer.fromJsonCode(serializer.toJsonCode(john)));
+final reserializedJohn = serializer.fromJsonCode(serializer.toJsonCode(john));
+assert(reserializedJohn.name == "John Doe");
 
-// Also works with readable JSON.
-assert(john == serializer.fromJsonCode(
-  serializer.toJsonCode(john, readableFlavor: true),
-));
+final reserializedJane = serializer.fromJsonCode(
+  serializer.toJsonCode(jane, readableFlavor: true),
+);
+assert(reserializedJane.name == "Jane Doe");
 
 final reserializedLyla =
     serializer.fromBytes(serializer.toBytes(mutableLyla.toFrozen()));
@@ -290,7 +293,7 @@ final jade = User(
   quote: "",
   pets: pets,
   // ^ makes a copy of 'pets' because 'pets' is mutable
-  subscriptionStatus: User_SubscriptionStatus.unknown,
+    subscriptionStatus: SubscriptionStatus.unknown,
 );
 
 // jade.pets.add(...)
@@ -304,7 +307,7 @@ final jack = User(
   quote: "",
   pets: jade.pets,
   // ^ doesn't make a copy because 'jade.pets' is frozen
-  subscriptionStatus: User_SubscriptionStatus.unknown,
+  subscriptionStatus: SubscriptionStatus.unknown,
 );
 
 assert(identical(jack.pets, jade.pets));
@@ -314,15 +317,19 @@ assert(identical(jack.pets, jade.pets));
 
 ```dart
 final userRegistry = UserRegistry(
-  users: [john, jane, mutableLyla],
+  users: [john, jane, mutableLyla, evilJane],
 );
 
-// findByKey() returns the user with the given key (specified in the .skir file).
-// In this example, the key is 'user_id'.
+// find() returns the user with the given key (specified in the .skir file).
+// In this example, the key is the user id.
 // The first lookup runs in O(N) time, and the following lookups run in O(1)
 // time.
 assert(userRegistry.users.findByKey(42) == john);
 assert(userRegistry.users.findByKey(100) == null);
+
+// If multiple elements have the same key, find() returns the last one.
+// Duplicates are allowed but generally discouraged.
+assert(userRegistry.users.findByKey(43) == evilJane);
 ```
 
 ### Constants
@@ -340,7 +347,7 @@ print(tarzan);
 //       picture: "🐒",
 //     ),
 //   ],
-//   subscriptionStatus: user_skir:User_SubscriptionStatus.wrapTrial(
+//   subscriptionStatus: SubscriptionStatus.wrapTrial(
 //     User_Trial(
 //       startTime: DateTime.fromMillisecondsSinceEpoch(
 //         // 2025-04-02T11:13:29.000Z
@@ -382,7 +389,7 @@ final typeDescriptor = skir.TypeDescriptor.parseFromJson(
 print("Type descriptor deserialized successfully");
 
 // The 'allStringsToUpperCase' function uses reflection to convert all the
-// strings contained in a given Skir value to upper case.
+// strings contained in a given Soia value to upper case.
 // See the implementation at
 // https://github.com/gepheum/skir-dart-example/blob/main/lib/all_strings_to_upper_case.dart
 print(allStringsToUpperCase<User>(tarzan, User.serializer.typeDescriptor));
@@ -397,7 +404,7 @@ print(allStringsToUpperCase<User>(tarzan, User.serializer.typeDescriptor));
 //       picture: "🐒",
 //     ),
 //   ],
-//   subscriptionStatus: User_SubscriptionStatus.wrapTrial(
+//   subscriptionStatus: SubscriptionStatus.wrapTrial(
 //     User_Trial(
 //       startTime: DateTime.fromMillisecondsSinceEpoch(
 //         // 2025-04-02T11:13:29.000Z
