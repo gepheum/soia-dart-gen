@@ -635,7 +635,7 @@ class DartSourceFileGenerator {
             return JSON.stringify(valueAsDenseJson);
           }
         }
-        case "uint64":
+        case "hash64":
         case "bytes":
         case "timestamp":
           return undefined;
@@ -673,7 +673,7 @@ class DartSourceFileGenerator {
           case "int32":
           case "int64":
             return { expression: "0", isConst: true };
-          case "uint64":
+          case "hash64":
             return { expression: "_core.BigInt.zero", isConst: false };
           case "float32":
           case "float64":

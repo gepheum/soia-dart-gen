@@ -614,7 +614,7 @@ void main() {
       expect(skir.Serializers.int32.typeDescriptor.defaultValue, equals(0));
       expect(skir.Serializers.int64.typeDescriptor.defaultValue, equals(0));
       expect(
-        skir.Serializers.uint64.typeDescriptor.defaultValue,
+        skir.Serializers.hash64.typeDescriptor.defaultValue,
         equals(BigInt.zero),
       );
       expect(skir.Serializers.float32.typeDescriptor.defaultValue, equals(0.0));

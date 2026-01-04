@@ -468,10 +468,10 @@ TypedValueType<dynamic> evaluateTypedValue(TypedValue literal) {
         (literal as TypedValue_int64Wrapper).value,
         skir.Serializers.int64,
       );
-    case TypedValue_kind.uint64Wrapper:
+    case TypedValue_kind.hash64Wrapper:
       return TypedValueType(
-        (literal as TypedValue_uint64Wrapper).value,
-        skir.Serializers.uint64,
+        (literal as TypedValue_hash64Wrapper).value,
+        skir.Serializers.hash64,
       );
     case TypedValue_kind.float32Wrapper:
       return TypedValueType(

@@ -146,7 +146,7 @@ export class TypeSpeller {
           case "int32":
           case "int64":
             return "_core.int";
-          case "uint64":
+          case "hash64":
             return "_core.BigInt";
           case "float32":
           case "float64":
@@ -180,8 +180,8 @@ export class TypeSpeller {
             return "_skir.Serializers.int32";
           case "int64":
             return "_skir.Serializers.int64";
-          case "uint64":
-            return "_skir.Serializers.uint64";
+          case "hash64":
+            return "_skir.Serializers.hash64";
           case "float32":
             return "_skir.Serializers.float32";
           case "float64":
