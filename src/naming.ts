@@ -72,7 +72,13 @@ export function getClassName(
 }
 
 export function getModuleAlias(modulePath: string): string {
-  return "_lib_" + modulePath.replace(/\.skir$/, "").replace("/", "_");
+  return (
+    "_lib_" +
+    modulePath
+      .replace(/\.skir$/, "")
+      .replace(/^@/, "external/")
+      .replace(/[/-]/g, "_")
+  );
 }
 
 const DART_KEYWORDS: ReadonlySet<string> = new Set([

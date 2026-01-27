@@ -101,7 +101,7 @@ class DartSourceFileGenerator {
     const className = typeSpeller.getClassName(struct);
     this.push(
       `${DartSourceFileGenerator.SEPARATOR}\n`,
-      `// struct ${className.replace("_", ".")}\n`,
+      `// struct ${className.replace(/_/g, ".")}\n`,
       `${DartSourceFileGenerator.SEPARATOR}\n\n`,
       `sealed class ${className}_orMutable {\n`,
     );
@@ -365,7 +365,7 @@ class DartSourceFileGenerator {
     // The actual enum class
     this.push(
       `${DartSourceFileGenerator.SEPARATOR}\n`,
-      `// enum ${className.replace("_", ".")}\n`,
+      `// enum ${className.replace(/_/g, ".")}\n`,
       `${DartSourceFileGenerator.SEPARATOR}\n\n`,
     );
     {
