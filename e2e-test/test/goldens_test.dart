@@ -4,7 +4,7 @@ import "dart:typed_data" show Uint8List, ByteData;
 import "package:test/test.dart";
 import "package:skir_client/skir_client.dart" as skir;
 
-import "../skirout/goldens.dart";
+import "../skirout/@gepheum/skir-golden-tests/goldens.dart";
 
 class AssertionError implements Exception {
   String message = "";
