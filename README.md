@@ -223,12 +223,12 @@ String getSubscriptionInfoText(SubscriptionStatus status) {
 Every frozen struct class and enum class has a static readonly `serializer` property which can be used for serializing and deserializing instances of the class.
 
 ```dart
-// Serialize 'john' to dense JSON.
-
 final serializer = User.serializer;
 
-print(serializer.toJsonCode(john));
-// [42,"John Doe","Coffee is just a socially acceptable form of rage.",[["Dumbo",1.0,"🐘"]],[1]]
+// Serialize 'john' to dense JSON.
+final String johnDenseJson = serializer.toJsonCode(john);
+print(johnDenseJson);
+// [42,"John Doe",...]
 
 // Serialize 'john' to readable JSON.
 print(serializer.toJsonCode(john, readableFlavor: true));
@@ -253,7 +253,7 @@ print(serializer.toJsonCode(john, readableFlavor: true));
 // You should pick the readable flavor mostly for debugging purposes.
 
 // Serialize 'john' to binary format.
-print(serializer.toBytes(john));
+final Uint8List johnBytes = serializer.toBytes(john);
 
 // The binary format is not human readable, but it is slightly more compact
 // than JSON, and serialization/deserialization can be a bit faster in
@@ -266,7 +266,7 @@ print(serializer.toBytes(john));
 ```dart
 // Use fromJson(), fromJsonCode() and fromBytes() to deserialize.
 
-final reserializedJohn = serializer.fromJsonCode(serializer.toJsonCode(john));
+final reserializedJohn = serializer.fromJsonCode(johnDenseJson);
 assert(reserializedJohn.name == "John Doe");
 
 final reserializedJane = serializer.fromJsonCode(
@@ -274,9 +274,7 @@ final reserializedJane = serializer.fromJsonCode(
 );
 assert(reserializedJane.name == "Jane Doe");
 
-final reserializedLyla =
-    serializer.fromBytes(serializer.toBytes(mutableLyla.toFrozen()));
-assert(reserializedLyla.name == "Lyla Doe");
+assert(serializer.fromBytes(johnBytes) == john);
 ```
 
 ### Frozen lists and copies
@@ -348,7 +346,7 @@ print(tarzan);
 //     ),
 //   ],
 //   subscriptionStatus: SubscriptionStatus.wrapTrial(
-//     User_Trial(
+//     SubscriptionStatus_Trial(
 //       startTime: DateTime.fromMillisecondsSinceEpoch(
 //         // 2025-04-02T11:13:29.000Z
 //         1743592409000
@@ -389,7 +387,7 @@ final typeDescriptor = skir.TypeDescriptor.parseFromJson(
 print("Type descriptor deserialized successfully");
 
 // The 'allStringsToUpperCase' function uses reflection to convert all the
-// strings contained in a given Soia value to upper case.
+// strings contained in a given Skir value to upper case.
 // See the implementation at
 // https://github.com/gepheum/skir-dart-example/blob/main/lib/all_strings_to_upper_case.dart
 print(allStringsToUpperCase<User>(tarzan, User.serializer.typeDescriptor));
@@ -405,7 +403,7 @@ print(allStringsToUpperCase<User>(tarzan, User.serializer.typeDescriptor));
 //     ),
 //   ],
 //   subscriptionStatus: SubscriptionStatus.wrapTrial(
-//     User_Trial(
+//     SubscriptionStatus_Trial(
 //       startTime: DateTime.fromMillisecondsSinceEpoch(
 //         // 2025-04-02T11:13:29.000Z
 //         1743592409000
